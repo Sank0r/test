@@ -1,0 +1,64 @@
+@font-face {
+    font-family: 'Roboto';
+    src: url('./Roboto-Black.ttf'); 
+}
+
+QWidget {
+    background-color: #f4f4f4;
+    font-family: 'Roboto', sans-serif; 
+}
+
+QLabel {
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+}
+
+QLineEdit, QDateEdit, QComboBox {
+    border: 2px solid #C0C0C0;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-family: 'Roboto', sans-serif; 
+}
+
+QPushButton {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 15px 30px;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    font-family: 'Roboto', sans-serif; 
+}
+
+QPushButton:hover {
+    background-color: #0056b3;
+}
+
+QMessageBox {
+    background-color: #ffffff;
+    border-radius: 10px;
+}
+
+QFormLayout {
+    margin: 20px;
+    spacing: 10px;
+}
+
+QMenu {
+    background-color: #f0f0f0; 
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+QMenu::item {
+    padding: 8px 15px;
+    font-size: 12px;
+}
+
+QMenu::item:selected {
+    background-color: #e0e0e0; 
+}
