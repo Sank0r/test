@@ -20,6 +20,8 @@ APPLICATION_LANGUAGE = ""
 
 APPLICATION_SCREEN_SIZE = (640,480)
 
+PALETTE_SCREEN_SIZE = (640,480)
+
 def load_stylesheet(style):
     try:
         with open(style, "r") as file:
@@ -53,9 +55,8 @@ class SettingsWindow(QDialog):
             for key, value in section_values.items():
                 line_edit = QLineEdit(value)
                 line_edit.setPlaceholderText(key)
-                line_edit.section_name=section_name
                 self.layout.addWidget(line_edit)
-                self.inputs[key] = line_edit  
+                self.inputs[section_name + "@@" + key] = line_edit  
 
         save_button = QPushButton(LanguageConstants.get_constant("SAVE", APPLICATION_LANGUAGE))
         save_button.clicked.connect(self.save_settings)
@@ -65,15 +66,15 @@ class SettingsWindow(QDialog):
 
     def save_settings(self):
         for key, line_edit in self.inputs.items():
-            section_name = line_edit.section_name 
+            (section_name,real_key) = key.split("@@")
             if section_name:
-                SettingsManager.set_setting(section_name,key,line_edit.text())
+                SettingsManager.set_setting(section_name,real_key,line_edit.text())
 
         SettingsManager.save_settings()
         QMessageBox.information(self, "Settings", LanguageConstants.get_constant("SETTINGS_SAVED", APPLICATION_LANGUAGE))
 
 class LoginWindow(QMainWindow):
-    def __init__(self): # <-- Исправлено: __init__
+    def __init__(self):
         super().__init__()
 
         self.tray_icon = None
@@ -256,7 +257,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Main Window")
-        self.setFixedSize(620,480)
+        self.setFixedSize(PALETTE_SCREEN_SIZE[0],PALETTE_SCREEN_SIZE[1])
         self.setWindowIcon(QIcon("icon.png"))
         self.scroll = QScrollArea()             
         self.widget = QWidget()                 
@@ -311,6 +312,7 @@ if __name__ == '__main__':
     SettingsManager.read_settings()
     APPLICATION_LANGUAGE = SettingsManager.default_setting("REGION_PARMS","lang")
     APPLICATION_SCREEN_SIZE = tuple(map(int,SettingsManager.default_setting("SCREEN_PREFERENCES","resolution").split('x')))
+    PALETTE_SCREEN_SIZE = tuple(map(int,SettingsManager.default_setting("SCREEN_PREFERENCES_MAIN","resolution").split('x')))
     app.setStyleSheet(load_stylesheet("style.qss"))
     window = LoginWindow()
     
