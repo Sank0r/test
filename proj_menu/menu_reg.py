@@ -12,8 +12,8 @@ import common
 from settings_qmenu import SettingsManager
 from language_values import LanguageConstants
 
-import pystray
-from pystray import MenuItem as item
+#import pystray
+#from pystray import MenuItem as item
 from PIL import Image
 
 APPLICATION_LANGUAGE = ""
@@ -125,7 +125,7 @@ class LoginWindow(QMainWindow):
         layout.addWidget(self.login_button)
         layout.addWidget(self.register_button)
 
-        self.setup_tray_icon() 
+        #self.setup_tray_icon() 
 
     def show_settings(self):
         settings_window = SettingsWindow()
@@ -149,8 +149,8 @@ class LoginWindow(QMainWindow):
                 item('Показать', self.show_window, default=True),
                 item('Выход', self.exit_application),
             )
-            self.tray_icon = pystray.Icon("my_app", icon_image, menu=menu)
-            self.tray_icon.run()
+            #self.tray_icon = pystray.Icon("my_app", icon_image, menu=menu)
+            #self.tray_icon.run()
         except FileNotFoundError:
             print("Файл иконки не найден!")
         except Exception as e:
@@ -278,10 +278,12 @@ class MainWindow(QMainWindow):
         self.prev_pos = None
         self.horizontal_pos = 0
         self.vertical_pos = 0
+        self.speed_factor = 3.5
+        self.reverse = -1
         self.background_width = self.pixmap.width()
         self.background_height = self.pixmap.height()
-        self.vertical = lambda x: x if 0 <= x <= self.background_width else (0 if x<0 else self.background_width)
-        self.horizontal = lambda y: y if 0 <= y <= self.background_height else (0 if y<0 else self.background_height)
+        self.horizontal = lambda x: x if 0 <= x <= self.background_width else (0 if x<0 else self.background_width)
+        self.vertical = lambda y: y if 0 <= y <= self.background_height else (0 if y<0 else self.background_height)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.RightButton:
@@ -289,15 +291,14 @@ class MainWindow(QMainWindow):
 
     def mouseMoveEvent(self, event):
         if event.buttons() & Qt.MouseButton.RightButton and self.prev_pos is not None:
-            delta = event.position() - self.prev_pos  #смещение
+            delta = self.speed_factor * (event.position() - self.prev_pos)  #смещение
             new_pos = delta.toPoint()  
             
-            self.horizontal_pos += new_pos.x()
+            self.horizontal_pos += new_pos.x() * self.reverse
             self.horizontal_pos=self.horizontal(self.horizontal_pos)
             
-            self.vertical_pos += new_pos.y()
+            self.vertical_pos += new_pos.y() * self.reverse
             self.vertical_pos=self.vertical(self.vertical_pos)
-            print(self.horizontal_pos,self.vertical_pos)
             
             self.scroll.horizontalScrollBar().setValue(self.horizontal_pos)
             self.scroll.verticalScrollBar().setValue(self.vertical_pos)
