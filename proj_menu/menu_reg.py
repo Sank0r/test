@@ -9,6 +9,7 @@ from PyQt6.QtGui import QIcon,QPixmap,QAction
 
 import db_main
 import common
+import grid_main
 from settings_qmenu import SettingsManager
 from language_values import LanguageConstants
 
@@ -87,10 +88,16 @@ class LoginWindow(QMainWindow):
         self.setAct.setShortcut('Ctrl+Q')
         self.setAct.setStatusTip('Set Up Application')
         self.setAct.triggered.connect(self.show_settings)
-
+        
+        self.testAct = QAction(QIcon('television-test.png'), '&Test', self)
+        self.testAct.setShortcut('Ctrl+T')
+        self.testAct.setStatusTip('Test External Function')
+        self.testAct.triggered.connect(self.test_function)
+        
         self.menubar = self.menuBar()
         self.fileMenu = self.menubar.addMenu('&{0}'.format('Manager'))
         self.fileMenu.addAction(self.setAct)
+        self.fileMenu.addAction(self.testAct)
 
         self.setWindowTitle(LanguageConstants.get_constant("LOGIN", APPLICATION_LANGUAGE))
         self.setFixedSize(APPLICATION_SCREEN_SIZE[0], APPLICATION_SCREEN_SIZE[1])
@@ -101,7 +108,10 @@ class LoginWindow(QMainWindow):
 
         layout = QVBoxLayout(central_widget)
         form_layout = QFormLayout()
+        
+        self.grid_window = grid_main.GridWindow()
 
+        
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText(
             LanguageConstants.get_constant("USERNAME_PLACEHOLDER", APPLICATION_LANGUAGE)
@@ -131,6 +141,9 @@ class LoginWindow(QMainWindow):
         settings_window = SettingsWindow()
         settings_window.exec()
 
+    def test_function(self):
+        self.grid_window.show()
+ 
 
     def show_window(self):
         self.show()
