@@ -1,41 +1,40 @@
 import sys
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
-    QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit,QScrollArea,QDialog,QFrame,QComboBox,QCheckBox
+    QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, QFrame, QComboBox, QCheckBox
 )
-
-from PyQt6.QtGui import QIcon,QPixmap,QAction
+from PyQt6.QtGui import QIcon, QPixmap, QAction
 
 import db_main
 import common
 import grid_main
 from settings_qmenu import SettingsManager
 from language_values import LanguageConstants
+from tray_icon import TrayIconManager
 
-#import pystray
-#from pystray import MenuItem as item
+import pystray
+from pystray import MenuItem as item
 from PIL import Image
+from PyQt6.QtCore import QCoreApplication
 
 APPLICATION_LANGUAGE = ""
-
-APPLICATION_SCREEN_SIZE = (640,480)
-
-PALETTE_SCREEN_SIZE = (640,480)
+APPLICATION_SCREEN_SIZE = (640, 480)
+PALETTE_SCREEN_SIZE = (640, 480)
 
 def load_stylesheet(style):
     try:
         with open(style, "r") as file:
             return file.read()
     except FileNotFoundError:
-        print(LanguageConstants.get_constant("STYLESHEET_FILE_NOT_FOUND",APPLICATION_LANGUAGE))
+        print(LanguageConstants.get_constant("STYLESHEET_FILE_NOT_FOUND", APPLICATION_LANGUAGE))
         return ""
 
 class SettingsWindow(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(LanguageConstants.get_constant("SETTINGS", APPLICATION_LANGUAGE))
-        self.setFixedSize(APPLICATION_SCREEN_SIZE[0],APPLICATION_SCREEN_SIZE[1])
+        self.setFixedSize(APPLICATION_SCREEN_SIZE[0], APPLICATION_SCREEN_SIZE[1])
         self.setWindowIcon(QIcon("gear.png"))
 
         self.layout = QVBoxLayout(self)
@@ -67,9 +66,9 @@ class SettingsWindow(QDialog):
 
     def save_settings(self):
         for key, line_edit in self.inputs.items():
-            (section_name,real_key) = key.split("@@")
+            (section_name, real_key) = key.split("@@")
             if section_name:
-                SettingsManager.set_setting(section_name,real_key,line_edit.text())
+                SettingsManager.set_setting(section_name, real_key, line_edit.text())
 
         SettingsManager.save_settings()
         QMessageBox.information(self, "Settings", LanguageConstants.get_constant("SETTINGS_SAVED", APPLICATION_LANGUAGE))
@@ -77,11 +76,8 @@ class SettingsWindow(QDialog):
 class LoginWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-
-        self.tray_icon = None
-
-        self.checkBox_tray_mode = QCheckBox("Сворачивать в трей")
-        self.statusBar().addPermanentWidget(self.checkBox_tray_mode)
+        self.tray_icon_manager = TrayIconManager(self)
+        self.init_ui()
 
         self.statusBar()
         self.setAct = QAction(QIcon('gear.png'), '&Settings', self)
@@ -111,17 +107,12 @@ class LoginWindow(QMainWindow):
         
         self.grid_window = grid_main.GridWindow()
 
-        
         self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText(
-            LanguageConstants.get_constant("USERNAME_PLACEHOLDER", APPLICATION_LANGUAGE)
-        )
+        self.username_input.setPlaceholderText(LanguageConstants.get_constant("USERNAME_PLACEHOLDER", APPLICATION_LANGUAGE))
         form_layout.addRow(LanguageConstants.get_constant("USERNAME_WINDOW", APPLICATION_LANGUAGE), self.username_input)
 
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText(
-            LanguageConstants.get_constant("PASSWORD_PLACEHOLDER", APPLICATION_LANGUAGE)
-        )
+        self.password_input.setPlaceholderText(LanguageConstants.get_constant("PASSWORD_PLACEHOLDER", APPLICATION_LANGUAGE))
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         form_layout.addRow(LanguageConstants.get_constant("PASSWORD_WINDOW", APPLICATION_LANGUAGE), self.password_input)
 
@@ -135,7 +126,11 @@ class LoginWindow(QMainWindow):
         layout.addWidget(self.login_button)
         layout.addWidget(self.register_button)
 
-        #self.setup_tray_icon() 
+        self.tray_icon_manager.tray_icon.visible = True
+
+    def closeEvent(self, event):
+        event.ignore()
+        self.hide()
 
     def show_settings(self):
         settings_window = SettingsWindow()
@@ -143,31 +138,6 @@ class LoginWindow(QMainWindow):
 
     def test_function(self):
         self.grid_window.show()
- 
-
-    def show_window(self):
-        self.show()
-        if self.tray_icon:
-            self.tray_icon.hide()
-
-    def exit_application(self):
-        if self.tray_icon:
-            self.tray_icon.stop()
-        QApplication.quit()
-
-    def setup_tray_icon(self):
-        try:
-            icon_image = Image.open("icon.png")
-            menu = (
-                item('Показать', self.show_window, default=True),
-                item('Выход', self.exit_application),
-            )
-            #self.tray_icon = pystray.Icon("my_app", icon_image, menu=menu)
-            #self.tray_icon.run()
-        except FileNotFoundError:
-            print("Файл иконки не найден!")
-        except Exception as e:
-            print(f"Ошибка при создании иконки в трее: {e}")
 
     def handle_login(self):
         username = self.username_input.text()
@@ -200,12 +170,18 @@ class LoginWindow(QMainWindow):
         self.main_window = MainWindow()
         self.main_window.show()
         self.close()
-        
+
+    def init_ui(self):
+        self.tray_icon_manager = TrayIconManager(self)
+
+    def toggle_tray_mode(self, state):
+        self.tray_icon_manager.toggle_tray()
+
 class RegistrationWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(LanguageConstants.get_constant("REGISTER", APPLICATION_LANGUAGE))
-        self.setFixedSize(APPLICATION_SCREEN_SIZE[0],APPLICATION_SCREEN_SIZE[1])
+        self.setFixedSize(APPLICATION_SCREEN_SIZE[0], APPLICATION_SCREEN_SIZE[1])
         self.setWindowIcon(QIcon("icon.png"))
 
         central_widget = QWidget()
@@ -247,17 +223,17 @@ class RegistrationWindow(QMainWindow):
         date_of_birth = self.date_input.date().toString("yyyy-MM-dd")
 
         try:
-            conn = db_main.connect_db("users.db",False)
-            data = db_main.request_select_db(conn,"SELECT count(*) FROM users WHERE login=? AND password=?",(username, password))
+            conn = db_main.connect_db("users.db", False)
+            data = db_main.request_select_db(conn, "SELECT count(*) FROM users WHERE login=? AND password=?", (username, password))
         except db_main.DatabaseException as ex:
-            QMessageBox.critical(self, "Critical",ex.msg)
+            QMessageBox.critical(self, "Critical", ex.msg)
         try:
-            conn = db_main.connect_db("users.db",False)
+            conn = db_main.connect_db("users.db", False)
             db_main.request_update_db(conn, "INSERT INTO users (login, password, type) VALUES (?, ?, ?)", (username, password, 1))
-            QMessageBox.information(self,(LanguageConstants.get_constant("REGISTRATION_COMLETED_QMENU", APPLICATION_LANGUAGE)), (LanguageConstants.get_constant("REGISTRATION_COMLETED", APPLICATION_LANGUAGE)))
+            QMessageBox.information(self, (LanguageConstants.get_constant("REGISTRATION_COMLETED_QMENU", APPLICATION_LANGUAGE)), (LanguageConstants.get_constant("REGISTRATION_COMLETED", APPLICATION_LANGUAGE)))
             self.back_to_login()
         except db_main.DatabaseException as ex:
-            QMessageBox.warning(self,(LanguageConstants.get_constant("USER_ERROR", APPLICATION_LANGUAGE)),(LanguageConstants.get_constant("USER_ALREADY_EXISTS", APPLICATION_LANGUAGE)))
+            QMessageBox.warning(self, (LanguageConstants.get_constant("USER_ERROR", APPLICATION_LANGUAGE)), (LanguageConstants.get_constant("USER_ALREADY_EXISTS", APPLICATION_LANGUAGE)))
 
         db_main.disconnect_db(conn)
 
@@ -270,7 +246,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Main Window")
-        self.setFixedSize(PALETTE_SCREEN_SIZE[0],PALETTE_SCREEN_SIZE[1])
+        self.setFixedSize(PALETTE_SCREEN_SIZE[0], PALETTE_SCREEN_SIZE[1])
         self.setWindowIcon(QIcon("icon.png"))
         self.scroll = QScrollArea()             
         self.widget = QWidget()                 
@@ -321,14 +297,13 @@ class MainWindow(QMainWindow):
         if event.button() == Qt.MouseButton.RightButton:
             self.prev_pos = None
             
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     SettingsManager.read_settings()
-    APPLICATION_LANGUAGE = SettingsManager.default_setting("REGION_PARMS","lang")
-    APPLICATION_SCREEN_SIZE = tuple(map(int,SettingsManager.default_setting("SCREEN_PREFERENCES","resolution").split('x')))
-    PALETTE_SCREEN_SIZE = tuple(map(int,SettingsManager.default_setting("SCREEN_PREFERENCES_MAIN","resolution").split('x')))
+    APPLICATION_LANGUAGE = SettingsManager.default_setting("REGION_PARMS", "lang")
+    APPLICATION_SCREEN_SIZE = tuple(map(int, SettingsManager.default_setting("SCREEN_PREFERENCES", "resolution").split('x')))
+    PALETTE_SCREEN_SIZE = tuple(map(int, SettingsManager.default_setting("SCREEN_PREFERENCES_MAIN", "resolution").split('x')))
     app.setStyleSheet(load_stylesheet("style.qss"))
     window = LoginWindow()
-    
     window.show()
     sys.exit(app.exec())
