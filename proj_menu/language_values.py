@@ -3,8 +3,7 @@ class LanguageConstants:
     _RU = 1
     STYLESHEET_FILE_NOT_FOUND = ["file styles not found!", "Файл стилей не найден!"]
 
-    MINIMIZE_TO_TRAY = ["Свернуть в трей","Minimize to Tray"]
-    RESTORE_FROM_TRAY = ["Убрать из трея", "Restore from Tray"]
+    MINIMIZE_TO_TRAY = ["Minimize to Tray","Свернуть в трей"]
 
     SETTINGS = ["Settings", "Настройки"]
     SAVE = ["Save", "Сохранить"]

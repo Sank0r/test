@@ -74,10 +74,9 @@ class SettingsWindow(QDialog):
         QMessageBox.information(self, "Settings", LanguageConstants.get_constant("SETTINGS_SAVED", APPLICATION_LANGUAGE))
 
 class LoginWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, tray_icon_manager):
         super().__init__()
-        self.tray_icon_manager = TrayIconManager(self)
-        self.init_ui()
+        self.tray_icon_manager = tray_icon_manager
 
         self.statusBar()
         self.setAct = QAction(QIcon('gear.png'), '&Settings', self)
@@ -122,11 +121,13 @@ class LoginWindow(QMainWindow):
         self.register_button = QPushButton(LanguageConstants.get_constant("REGISTER", APPLICATION_LANGUAGE))
         self.register_button.clicked.connect(self.open_registration_window)
 
+        self.minimize_to_tray_button = QPushButton(LanguageConstants.get_constant("MINIMIZE_TO_TRAY", APPLICATION_LANGUAGE))
+        self.minimize_to_tray_button.clicked.connect(self.minimize_to_tray)
+
         layout.addLayout(form_layout)
         layout.addWidget(self.login_button)
         layout.addWidget(self.register_button)
-
-        self.tray_icon_manager.tray_icon.visible = True
+        layout.addWidget(self.minimize_to_tray_button)
 
     def closeEvent(self, event):
         event.ignore()
@@ -162,24 +163,24 @@ class LoginWindow(QMainWindow):
         db_main.disconnect_db(conn)
 
     def open_registration_window(self):
-        self.registration_window = RegistrationWindow()
+        self.registration_window = RegistrationWindow(self.tray_icon_manager)
         self.registration_window.show()
-        self.close()
+        self.hide()
 
     def open_main_window(self):
-        self.main_window = MainWindow()
+        self.main_window = MainWindow(self.tray_icon_manager)
         self.main_window.show()
-        self.close()
+        self.hide()
 
-    def init_ui(self):
-        self.tray_icon_manager = TrayIconManager(self)
+    def minimize_to_tray(self):
+        self.hide()
+        self.tray_icon_manager.show_tray_icon()
 
-    def toggle_tray_mode(self, state):
-        self.tray_icon_manager.toggle_tray()
 
 class RegistrationWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, tray_icon_manager):
         super().__init__()
+        self.tray_icon_manager = tray_icon_manager
         self.setWindowTitle(LanguageConstants.get_constant("REGISTER", APPLICATION_LANGUAGE))
         self.setFixedSize(APPLICATION_SCREEN_SIZE[0], APPLICATION_SCREEN_SIZE[1])
         self.setWindowIcon(QIcon("icon.png"))
@@ -238,13 +239,14 @@ class RegistrationWindow(QMainWindow):
         db_main.disconnect_db(conn)
 
     def back_to_login(self):
-        self.login_window = LoginWindow()
+        self.login_window = LoginWindow(self.tray_icon_manager)
         self.login_window.show()
         self.close()
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, tray_icon_manager):
         super().__init__()
+        self.tray_icon_manager = tray_icon_manager
         self.setWindowTitle("Main Window")
         self.setFixedSize(PALETTE_SCREEN_SIZE[0], PALETTE_SCREEN_SIZE[1])
         self.setWindowIcon(QIcon("icon.png"))
@@ -304,6 +306,8 @@ if __name__ == "__main__":
     APPLICATION_SCREEN_SIZE = tuple(map(int, SettingsManager.default_setting("SCREEN_PREFERENCES", "resolution").split('x')))
     PALETTE_SCREEN_SIZE = tuple(map(int, SettingsManager.default_setting("SCREEN_PREFERENCES_MAIN", "resolution").split('x')))
     app.setStyleSheet(load_stylesheet("style.qss"))
-    window = LoginWindow()
+
+    tray_icon_manager = TrayIconManager(None)
+    window = LoginWindow(tray_icon_manager)
     window.show()
     sys.exit(app.exec())

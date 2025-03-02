@@ -24,17 +24,17 @@ class TrayIconManager:
             print(f"Ошибка при создании иконки в трее: {e}")
 
     def show_window(self, icon=None, item=None):
-        self.main_window.showNormal()
-        self.main_window.activateWindow()
+        if self.main_window:
+            self.main_window.showNormal()
+            self.main_window.activateWindow()
 
     def exit_application(self, icon=None, item=None):
         self.tray_icon.stop()
         QApplication.quit()
 
-    def toggle_tray(self, state):
-        if state:
-            self.tray_icon.run_detached()
-            self.main_window.hide()
-        else:
-            self.tray_icon.stop()
-            self.main_window.show()
+    def show_tray_icon(self):
+        if self.tray_icon:
+            self.tray_icon.visible = True
+
+    def set_main_window(self, main_window):
+        self.main_window = main_window

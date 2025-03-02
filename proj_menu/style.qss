@@ -24,6 +24,7 @@ QLineEdit, QDateEdit, QComboBox {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); 
 }
 
+/* Основной стиль для всех кнопок */
 QPushButton {
     background-color: #007BFF;
     color: white;
@@ -38,6 +39,42 @@ QPushButton {
 QPushButton:hover {
     background-color: #0056b3;
     transform: translateY(-2px); 
+}
+
+/* Стиль для кнопок внутри таблицы (грида) */
+QTableWidget QPushButton {
+    background-color: #C0C0C0; /* Серый цвет фона */
+    border: none;
+    border-radius: 6px; /* Закругленные углы */
+    padding: 5px; /* Отступы внутри кнопки */
+    margin: 2px; /* Отступы между кнопками */
+    font-size: 14px; /* Размер шрифта */
+}
+
+QTableWidget QPushButton:hover {
+    background-color: #A0A0A0; /* Цвет фона при наведении */
+}
+
+QTableWidget QPushButton:pressed {
+    background-color: #808080; /* Цвет фона при нажатии */
+}
+
+/* Стиль для кнопок с иконками в гриде */
+QTableWidget QPushButton#iconButton {
+    background-color: #C0C0C0; /* Серый цвет фона */
+    border: none;
+    border-radius: 6px; /* Закругленные углы */
+    padding: 5px; /* Отступы внутри кнопки */
+    margin: 2px; /* Отступы между кнопками */
+    font-size: 14px; /* Размер шрифта */
+}
+
+QTableWidget QPushButton#iconButton:hover {
+    background-color: #A0A0A0; /* Цвет фона при наведении */
+}
+
+QTableWidget QPushButton#iconButton:pressed {
+    background-color: #808080; /* Цвет фона при нажатии */
 }
 
 QMessageBox {
