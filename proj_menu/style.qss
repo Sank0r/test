@@ -10,42 +10,95 @@ QWidget {
 
 QLabel {
     font-weight: bold;
-    font-size: 16px;
+    font-size: 18px;
     color: #333;
 }
 
 QLineEdit, QDateEdit, QComboBox {
     border: 2px solid #C0C0C0;
-    border-radius: 10px;
-    padding: 10px;
-    font-size: 14px;
-    margin-bottom: 10px;
+    border-radius: 12px; 
+    padding: 12px; 
+    font-size: 15px; 
+    margin-bottom: 15px; 
     font-family: 'Roboto', sans-serif; 
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); 
 }
 
 QPushButton {
     background-color: #007BFF;
     color: white;
     border: none;
-    border-radius: 10px;
-    padding: 15px 30px;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
+    border-radius: 12px; 
+    padding: 15px 35px; 
+    font-size: 18px; 
+    transition: background-color 0.3s ease, transform 0.2s ease;
     font-family: 'Roboto', sans-serif; 
 }
 
 QPushButton:hover {
     background-color: #0056b3;
+    transform: translateY(-2px); 
+}
+
+/* Стили для кнопок внутри QTableWidget */
+QTableWidget QPushButton {
+    background-color: #FFFFFF; 
+    border: 2px solid #000000; 
+    border-radius: 0; 
+    padding: 0; 
+    margin: 0; 
+    font-size: 14px; 
+    color: #333; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+QTableWidget QPushButton:hover {
+    background-color: #F0F0F0; 
+    border: 2px solid #007BFF;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); 
+}
+
+QTableWidget QPushButton:pressed {
+    background-color: #E0E0E0; 
+    border: 2px solid #0056b3;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+}
+
+QTableWidget QPushButton#iconButton {
+    background-color: #FFFFFF; 
+    border: 2px solid #000000; 
+    border-radius: 0; 
+    padding: 0; 
+    margin: 0; 
+    font-size: 14px; 
+    color: #333; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+QTableWidget QPushButton#iconButton:hover {
+    background-color: #F0F0F0; 
+    border: 2px solid #007BFF; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); 
+}
+
+QTableWidget QPushButton#iconButton:pressed {
+    background-color: #E0E0E0; 
+    border: 2px solid #0056b3; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
 }
 
 QMessageBox {
     background-color: #ffffff;
     border-radius: 10px;
+    border: 1px solid #C0C0C0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); 
 }
 
 QFormLayout {
     margin: 20px;
-    spacing: 10px;
+    spacing: 15px;
 }
 
 QMenu {
@@ -55,8 +108,8 @@ QMenu {
 }
 
 QMenu::item {
-    padding: 8px 15px;
-    font-size: 12px;
+    padding: 10px 15px; 
+    font-size: 14px;
 }
 
 QMenu::item:selected {
