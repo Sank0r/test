@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QHeaderView, QGridLayout, QPushButton
-from PyQt6.QtCore import Qt,QSize
-from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QIcon
 
 class GridWindow(QMainWindow):
     def __init__(self):
@@ -47,20 +47,26 @@ class GridWindow(QMainWindow):
                 if row_idx == 0 and col_idx == 1:
                     icon_widget = QWidget()
                     icon_layout = QGridLayout(icon_widget)
+                    icon_layout.setSpacing(0)  
+                    icon_layout.setContentsMargins(0, 0, 0, 0)  
+
                     for i in range(6):
                         icon_button = QPushButton()
                         icon_button.setIcon(QIcon(icons[i]))
-                        icon_button.setIconSize(QSize(32, 32))  
-                        icon_button.clicked.connect(lambda checked, i=i: self.on_icon_clicked(i))  
+                        icon_button.setIconSize(QSize(32, 32)) 
+                        icon_button.setFixedSize(32, 32)  
+                        icon_button.setStyleSheet("QPushButton { border: none; padding: 0; margin: 0; }")  
+                        icon_button.clicked.connect(lambda checked, i=i: self.on_icon_clicked(i))
                         icon_layout.addWidget(icon_button, i // 3, i % 3)  
+
                     icon_widget.setLayout(icon_layout)
                     self.table_widget.setCellWidget(row_idx, col_idx, icon_widget)
                 else:
                     self.table_widget.setItem(row_idx, col_idx, item)
 
-        # Pазмер строк и столбцов
-        self.table_widget.setRowHeight(1, 80)  
-        self.table_widget.setColumnWidth(1, 150)  
+        # Размер строк и столбцов
+        self.table_widget.setRowHeight(0, 36)  
+        self.table_widget.setColumnWidth(1,100)  
 
     def on_icon_clicked(self, icon_index):
         print(f"Иконка {icon_index + 1} нажата!")

@@ -24,7 +24,6 @@ QLineEdit, QDateEdit, QComboBox {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); 
 }
 
-/* Основной стиль для всех кнопок */
 QPushButton {
     background-color: #007BFF;
     color: white;
@@ -41,40 +40,53 @@ QPushButton:hover {
     transform: translateY(-2px); 
 }
 
-/* Стиль для кнопок внутри таблицы (грида) */
+/* Стили для кнопок внутри QTableWidget */
 QTableWidget QPushButton {
-    background-color: #C0C0C0; /* Серый цвет фона */
-    border: none;
-    border-radius: 6px; /* Закругленные углы */
-    padding: 5px; /* Отступы внутри кнопки */
-    margin: 2px; /* Отступы между кнопками */
-    font-size: 14px; /* Размер шрифта */
+    background-color: #FFFFFF; 
+    border: 2px solid #000000; 
+    border-radius: 0; 
+    padding: 0; 
+    margin: 0; 
+    font-size: 14px; 
+    color: #333; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 QTableWidget QPushButton:hover {
-    background-color: #A0A0A0; /* Цвет фона при наведении */
+    background-color: #F0F0F0; 
+    border: 2px solid #007BFF;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); 
 }
 
 QTableWidget QPushButton:pressed {
-    background-color: #808080; /* Цвет фона при нажатии */
+    background-color: #E0E0E0; 
+    border: 2px solid #0056b3;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
 }
 
-/* Стиль для кнопок с иконками в гриде */
 QTableWidget QPushButton#iconButton {
-    background-color: #C0C0C0; /* Серый цвет фона */
-    border: none;
-    border-radius: 6px; /* Закругленные углы */
-    padding: 5px; /* Отступы внутри кнопки */
-    margin: 2px; /* Отступы между кнопками */
-    font-size: 14px; /* Размер шрифта */
+    background-color: #FFFFFF; 
+    border: 2px solid #000000; 
+    border-radius: 0; 
+    padding: 0; 
+    margin: 0; 
+    font-size: 14px; 
+    color: #333; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 QTableWidget QPushButton#iconButton:hover {
-    background-color: #A0A0A0; /* Цвет фона при наведении */
+    background-color: #F0F0F0; 
+    border: 2px solid #007BFF; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); 
 }
 
 QTableWidget QPushButton#iconButton:pressed {
-    background-color: #808080; /* Цвет фона при нажатии */
+    background-color: #E0E0E0; 
+    border: 2px solid #0056b3; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
 }
 
 QMessageBox {
