@@ -1,10 +1,10 @@
 import sys
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from PyQt6.QtCore import Qt, QSize, pyqtSignal, QPoint
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
     QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, QFrame, QComboBox, QCheckBox
 )
-from PyQt6.QtGui import QIcon, QPixmap, QAction
+from PyQt6.QtGui import QIcon, QPixmap, QAction, QPainter, QColor, QFont
 
 import db_main
 import common
@@ -121,13 +121,9 @@ class LoginWindow(QMainWindow):
         self.register_button = QPushButton(LanguageConstants.get_constant("REGISTER", APPLICATION_LANGUAGE))
         self.register_button.clicked.connect(self.open_registration_window)
 
-        self.minimize_to_tray_button = QPushButton(LanguageConstants.get_constant("MINIMIZE_TO_TRAY", APPLICATION_LANGUAGE))
-        self.minimize_to_tray_button.clicked.connect(self.minimize_to_tray)
-
         layout.addLayout(form_layout)
         layout.addWidget(self.login_button)
         layout.addWidget(self.register_button)
-        layout.addWidget(self.minimize_to_tray_button)
 
     def closeEvent(self, event):
         event.ignore()
@@ -171,12 +167,7 @@ class LoginWindow(QMainWindow):
         self.main_window = MainWindow(self.tray_icon_manager)
         self.main_window.show()
         self.hide()
-
-    def minimize_to_tray(self):
-        self.hide()
-        self.tray_icon_manager.show_tray_icon()
-
-
+        
 class RegistrationWindow(QMainWindow):
     def __init__(self, tray_icon_manager):
         super().__init__()
@@ -243,6 +234,51 @@ class RegistrationWindow(QMainWindow):
         self.login_window.show()
         self.close()
 
+class Canvas(QLabel):
+    def __init__(self, width=2000, height=1000):
+        super().__init__()
+        self.drawing = False
+        self.last_coords = None
+        self.leftButton = False
+        self.setStyleSheet("background-color: #E0FFFF")
+        self.setScaledContents(False)
+        pixmap = QPixmap(width, height)
+        pixmap.fill(QColor('transparent'))
+        self.setPixmap(pixmap)
+
+    def set_drawing(self, drawing):
+        self.drawing = drawing
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.leftButton = True
+            self.last_coords = event.pos()
+        elif event.button() == Qt.MouseButton.RightButton:
+            event.ignore()  
+
+    def mouseMoveEvent(self, event):
+        if self.drawing and self.leftButton:
+            if self.last_coords is None:
+                self.last_coords = event.pos()
+                return
+            canvas = self.pixmap()
+            painter = QPainter(canvas)
+            pen = painter.pen()
+            pen.setWidth(7)
+            pen.setColor(QColor('brown'))
+            painter.setPen(pen)
+            painter.drawLine(self.last_coords, event.pos())
+            painter.end()
+            self.setPixmap(canvas)
+            self.last_coords = event.pos()
+        else:
+            event.ignore()  
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.leftButton = False
+            self.last_coords = None
+        
 class MainWindow(QMainWindow):
     def __init__(self, tray_icon_manager):
         super().__init__()
@@ -250,31 +286,43 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Main Window")
         self.setFixedSize(PALETTE_SCREEN_SIZE[0], PALETTE_SCREEN_SIZE[1])
         self.setWindowIcon(QIcon("icon.png"))
-        self.scroll = QScrollArea()             
-        self.widget = QWidget()                 
-        self.vbox = QVBoxLayout()              
 
-        self.label = QLabel(self)
-        self.pixmap = QPixmap('k.jpg')
-        self.label.setPixmap(self.pixmap)
-        self.vbox.addWidget(self.label)
-        self.widget.setLayout(self.vbox)
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
 
+        self.grid_window = grid_main.GridWindow()
+        self.grid_window.setFixedHeight(150)
+        main_layout.addWidget(self.grid_window)
+
+        self.scroll = QScrollArea()
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.scroll.setWidgetResizable(True)
-        self.scroll.setWidget(self.widget)
 
-        self.setCentralWidget(self.scroll)
+        self.widget = QWidget()
+        self.vbox = QVBoxLayout(self.widget)
+
+        self.canvas = Canvas(3000, 2000)
+        self.canvas.set_drawing(True)
+        self.vbox.addWidget(self.canvas)
+
+        self.scroll.setWidget(self.widget)
+        main_layout.addWidget(self.scroll)
+
         self.prev_pos = None
         self.horizontal_pos = 0
         self.vertical_pos = 0
         self.speed_factor = 3.5
         self.reverse = -1
-        self.background_width = self.pixmap.width()
-        self.background_height = self.pixmap.height()
-        self.horizontal = lambda x: x if 0 <= x <= self.background_width else (0 if x<0 else self.background_width)
-        self.vertical = lambda y: y if 0 <= y <= self.background_height else (0 if y<0 else self.background_height)
+        self.background_width = 3000
+        self.background_height = 2000
+        self.horizontal = lambda x: x if 0 <= x <= self.background_width else (0 if x < 0 else self.background_width)
+        self.vertical = lambda y: y if 0 <= y <= self.background_height else (0 if y < 0 else self.background_height)
+
+        self.scroll.mouseMoveEvent = self.mouseMoveEvent
+        self.scroll.mousePressEvent = self.mousePressEvent
+        self.scroll.mouseReleaseEvent = self.mouseReleaseEvent
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.RightButton:
@@ -282,18 +330,19 @@ class MainWindow(QMainWindow):
 
     def mouseMoveEvent(self, event):
         if event.buttons() & Qt.MouseButton.RightButton and self.prev_pos is not None:
-            delta = self.speed_factor * (event.position() - self.prev_pos)  #смещение
-            new_pos = delta.toPoint()  
-            
+            delta = self.speed_factor * (event.position() - self.prev_pos)
+            new_pos = delta.toPoint()
+
             self.horizontal_pos += new_pos.x() * self.reverse
-            self.horizontal_pos=self.horizontal(self.horizontal_pos)
-            
+            self.horizontal_pos = self.horizontal(self.horizontal_pos)
+
             self.vertical_pos += new_pos.y() * self.reverse
-            self.vertical_pos=self.vertical(self.vertical_pos)
-            
+            self.vertical_pos = self.vertical(self.vertical_pos)
+
             self.scroll.horizontalScrollBar().setValue(self.horizontal_pos)
             self.scroll.verticalScrollBar().setValue(self.vertical_pos)
-            self.prev_pos = event.position()  # Обновление предыдущей позиции
+
+            self.prev_pos = event.position()
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.RightButton:
@@ -309,5 +358,6 @@ if __name__ == "__main__":
 
     tray_icon_manager = TrayIconManager(None)
     window = LoginWindow(tray_icon_manager)
+    tray_icon_manager.set_login_window(window)  
     window.show()
     sys.exit(app.exec())

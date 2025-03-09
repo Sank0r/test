@@ -4,8 +4,8 @@ from PIL import Image
 from PyQt6.QtWidgets import QApplication
 
 class TrayIconManager:
-    def __init__(self, main_window):
-        self.main_window = main_window
+    def __init__(self, login_window):
+        self.login_window = login_window
         self.tray_icon = None
         self.setup_tray_icon()
 
@@ -24,9 +24,9 @@ class TrayIconManager:
             print(f"Ошибка при создании иконки в трее: {e}")
 
     def show_window(self, icon=None, item=None):
-        if self.main_window:
-            self.main_window.showNormal()
-            self.main_window.activateWindow()
+        if self.login_window:
+            self.login_window.showNormal()
+            self.login_window.activateWindow()
 
     def exit_application(self, icon=None, item=None):
         self.tray_icon.stop()
@@ -36,5 +36,5 @@ class TrayIconManager:
         if self.tray_icon:
             self.tray_icon.visible = True
 
-    def set_main_window(self, main_window):
-        self.main_window = main_window
+    def set_login_window(self, login_window):
+        self.login_window = login_window
