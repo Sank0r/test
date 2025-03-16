@@ -2,18 +2,20 @@ from PyQt6.QtWidgets import QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLa
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon
 
-
 class GridWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, main_window=None):
         super().__init__()
         self.setWindowTitle("Grid Window")
         self.setGeometry(100, 100, 600, 400)
+        self.main_window = main_window  
 
         self.table_widget = QTableWidget()
         self.table_widget.setRowCount(1)  # 1 строка
         self.table_widget.setColumnCount(1)  # 1 столбец
 
         self.table_widget.setHorizontalHeaderLabels(["Инструменты"])  # Заголовок столбца
+
+        self.table_widget.verticalHeader().setVisible(False)
 
         self.populate_table()
 
@@ -66,4 +68,6 @@ class GridWindow(QMainWindow):
         elif icon_index == 4:
             print("Действие для иконки 5")
         elif icon_index == 5:
-            print("Действие для иконки 6")
+            print("Зум")
+            if self.main_window:
+                self.main_window.toggle_zoom_slider()

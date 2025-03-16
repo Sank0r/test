@@ -40,53 +40,46 @@ QPushButton:hover {
     transform: translateY(-2px); 
 }
 
-/* Стили для кнопок внутри QTableWidget */
 QTableWidget QPushButton {
-    background-color: #FFFFFF; 
-    border: 2px solid #000000; 
-    border-radius: 0; 
-    padding: 0; 
-    margin: 0; 
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
     font-size: 14px; 
-    color: #333; 
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    color: transparent;
+    box-shadow: none;
+    transition: none;
 }
 
 QTableWidget QPushButton:hover {
-    background-color: #F0F0F0; 
-    border: 2px solid #007BFF;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); 
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 QTableWidget QPushButton:pressed {
-    background-color: #E0E0E0; 
-    border: 2px solid #0056b3;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
 }
 
 QTableWidget QPushButton#iconButton {
-    background-color: #FFFFFF; 
-    border: 2px solid #000000; 
-    border-radius: 0; 
-    padding: 0; 
-    margin: 0; 
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
     font-size: 14px; 
-    color: #333; 
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    color: transparent;
+    box-shadow: none;
+    transition: none;
 }
 
 QTableWidget QPushButton#iconButton:hover {
-    background-color: #F0F0F0; 
-    border: 2px solid #007BFF; 
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); 
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 QTableWidget QPushButton#iconButton:pressed {
-    background-color: #E0E0E0; 
-    border: 2px solid #0056b3; 
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
 }
 
 QMessageBox {
@@ -102,16 +95,33 @@ QFormLayout {
 }
 
 QMenu {
-    background-color: #f0f0f0; 
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    background-color: #ffffff;
+    border: 1px solid #C0C0C0;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    font-size: 12px;
 }
 
 QMenu::item {
-    padding: 10px 15px; 
-    font-size: 14px;
+    background-color: transparent;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: #333;
+    border-radius: 4px;
 }
 
 QMenu::item:selected {
-    background-color: #e0e0e0; 
+    background-color: #007BFF;
+    color: white;
+}
+
+QMenu::item:disabled {
+    color: #C0C0C0;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: #C0C0C0;
+    margin: 5px 0;
 }

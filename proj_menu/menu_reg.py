@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QPoint
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
-    QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, QFrame, QComboBox, QCheckBox
+    QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, QFrame, QComboBox, QCheckBox,QSlider,QHBoxLayout
 )
 from PyQt6.QtGui import QIcon, QPixmap, QAction, QPainter, QColor, QFont
 
@@ -12,10 +12,8 @@ import grid_main
 from settings_qmenu import SettingsManager
 from language_values import LanguageConstants
 from tray_icon import TrayIconManager
+from canvas import Canvas
 
-import pystray
-from pystray import MenuItem as item
-from PIL import Image
 from PyQt6.QtCore import QCoreApplication
 
 APPLICATION_LANGUAGE = ""
@@ -126,8 +124,7 @@ class LoginWindow(QMainWindow):
         layout.addWidget(self.register_button)
 
     def closeEvent(self, event):
-        event.ignore()
-        self.hide()
+        event.accept() 
 
     def show_settings(self):
         settings_window = SettingsWindow()
@@ -222,7 +219,7 @@ class RegistrationWindow(QMainWindow):
         try:
             conn = db_main.connect_db("users.db", False)
             db_main.request_update_db(conn, "INSERT INTO users (login, password, type) VALUES (?, ?, ?)", (username, password, 1))
-            QMessageBox.information(self, (LanguageConstants.get_constant("REGISTRATION_COMLETED_QMENU", APPLICATION_LANGUAGE)), (LanguageConstants.get_constant("REGISTRATION_COMLETED", APPLICATION_LANGUAGE)))
+            QMessageBox.information(self, (LanguageConstants.get_constant("REGISTRATION_COMPLETED_QMENU", APPLICATION_LANGUAGE)), (LanguageConstants.get_constant("REGISTRATION_COMPLETED", APPLICATION_LANGUAGE)))
             self.back_to_login()
         except db_main.DatabaseException as ex:
             QMessageBox.warning(self, (LanguageConstants.get_constant("USER_ERROR", APPLICATION_LANGUAGE)), (LanguageConstants.get_constant("USER_ALREADY_EXISTS", APPLICATION_LANGUAGE)))
@@ -234,51 +231,6 @@ class RegistrationWindow(QMainWindow):
         self.login_window.show()
         self.close()
 
-class Canvas(QLabel):
-    def __init__(self, width=2000, height=1000):
-        super().__init__()
-        self.drawing = False
-        self.last_coords = None
-        self.leftButton = False
-        self.setStyleSheet("background-color: #E0FFFF")
-        self.setScaledContents(False)
-        pixmap = QPixmap(width, height)
-        pixmap.fill(QColor('transparent'))
-        self.setPixmap(pixmap)
-
-    def set_drawing(self, drawing):
-        self.drawing = drawing
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.leftButton = True
-            self.last_coords = event.pos()
-        elif event.button() == Qt.MouseButton.RightButton:
-            event.ignore()  
-
-    def mouseMoveEvent(self, event):
-        if self.drawing and self.leftButton:
-            if self.last_coords is None:
-                self.last_coords = event.pos()
-                return
-            canvas = self.pixmap()
-            painter = QPainter(canvas)
-            pen = painter.pen()
-            pen.setWidth(7)
-            pen.setColor(QColor('brown'))
-            painter.setPen(pen)
-            painter.drawLine(self.last_coords, event.pos())
-            painter.end()
-            self.setPixmap(canvas)
-            self.last_coords = event.pos()
-        else:
-            event.ignore()  
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.leftButton = False
-            self.last_coords = None
-        
 class MainWindow(QMainWindow):
     def __init__(self, tray_icon_manager):
         super().__init__()
@@ -291,7 +243,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
 
-        self.grid_window = grid_main.GridWindow()
+        self.grid_window = grid_main.GridWindow(self)  
         self.grid_window.setFixedHeight(150)
         main_layout.addWidget(self.grid_window)
 
@@ -300,15 +252,26 @@ class MainWindow(QMainWindow):
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.scroll.setWidgetResizable(True)
 
-        self.widget = QWidget()
-        self.vbox = QVBoxLayout(self.widget)
-
-        self.canvas = Canvas(3000, 2000)
+        self.canvas = Canvas(3000, 2000) 
         self.canvas.set_drawing(True)
-        self.vbox.addWidget(self.canvas)
+        self.scroll.setWidget(self.canvas) 
 
-        self.scroll.setWidget(self.widget)
         main_layout.addWidget(self.scroll)
+        self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
+        self.zoom_slider.setRange(0, 500)  
+        self.zoom_slider.setValue(100) 
+        self.zoom_slider.valueChanged.connect(self.update_zoom)
+
+        self.zoom_status = QLabel("100%")
+        self.zoom_status.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        self.zoom_slider.setVisible(False)
+        self.zoom_status.setVisible(False)
+
+        zoom_layout = QHBoxLayout()
+        zoom_layout.addWidget(self.zoom_slider)
+        zoom_layout.addWidget(self.zoom_status)
+        main_layout.addLayout(zoom_layout)
 
         self.prev_pos = None
         self.horizontal_pos = 0
@@ -323,6 +286,15 @@ class MainWindow(QMainWindow):
         self.scroll.mouseMoveEvent = self.mouseMoveEvent
         self.scroll.mousePressEvent = self.mousePressEvent
         self.scroll.mouseReleaseEvent = self.mouseReleaseEvent
+
+    def toggle_zoom_slider(self):
+        self.zoom_slider.setVisible(not self.zoom_slider.isVisible())
+        self.zoom_status.setVisible(not self.zoom_status.isVisible())
+
+    def update_zoom(self):
+        zoom_level = self.zoom_slider.value() / 100.0  
+        self.zoom_status.setText(f"{int(zoom_level * 100)}%")
+        self.canvas.set_scale(zoom_level)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.RightButton:

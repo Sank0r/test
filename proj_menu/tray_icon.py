@@ -1,7 +1,5 @@
-import pystray
-from pystray import MenuItem as item
-from PIL import Image
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QSystemTrayIcon, QMenu
+from PyQt6.QtGui import QAction, QIcon
 
 class TrayIconManager:
     def __init__(self, login_window):
@@ -10,31 +8,36 @@ class TrayIconManager:
         self.setup_tray_icon()
 
     def setup_tray_icon(self):
-        try:
-            icon_image = Image.open("icon.png")
-            menu = (
-                item('Показать', self.show_window),
-                item('Выход', self.exit_application)
-            )
-            self.tray_icon = pystray.Icon("k", icon_image, menu=menu)
-            self.tray_icon.run_detached()
-        except FileNotFoundError:
-            print("Файл иконки не найден!")
-        except Exception as e:
-            print(f"Ошибка при создании иконки в трее: {e}")
+        self.tray_icon = QSystemTrayIcon()
+        self.tray_icon.setIcon(QIcon("icon.png"))
 
-    def show_window(self, icon=None, item=None):
+        menu = QMenu()
+        show_action = QAction("Показать", self.tray_icon)
+        show_action.triggered.connect(self.show_window)
+        exit_action = QAction("Выход", self.tray_icon)
+        exit_action.triggered.connect(self.exit_application)
+
+        menu.addAction(show_action)
+        menu.addAction(exit_action)
+
+        self.tray_icon.setContextMenu(menu)
+        self.tray_icon.show()
+
+    def show_window(self):
         if self.login_window:
             self.login_window.showNormal()
             self.login_window.activateWindow()
 
-    def exit_application(self, icon=None, item=None):
-        self.tray_icon.stop()
-        QApplication.quit()
-
-    def show_tray_icon(self):
+    def exit_application(self):
+        print("Завершение приложения...")
+        
+        if self.login_window:
+            self.login_window.close()
+            
         if self.tray_icon:
-            self.tray_icon.visible = True
+            self.tray_icon.hide()
+
+        QApplication.instance().quit()
 
     def set_login_window(self, login_window):
         self.login_window = login_window
