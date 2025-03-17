@@ -25,7 +25,7 @@ class Canvas(QLabel):
         self.drawing = drawing
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton and self.drawing:
             self.leftButton = True
             self.last_coords = self.transform_position(event.pos())
         elif event.button() == Qt.MouseButton.RightButton:
@@ -61,7 +61,6 @@ class Canvas(QLabel):
         return pos / self.scale_factor
 
     def update_canvas(self):
-
         combined_pixmap = self.original_pixmap.copy()
 
         painter = QPainter(combined_pixmap)

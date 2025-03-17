@@ -38,6 +38,7 @@ QPushButton {
 QPushButton:hover {
     background-color: #0056b3;
     transform: translateY(-2px); 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
 }
 
 QTableWidget QPushButton {
@@ -124,4 +125,173 @@ QMenu::separator {
     height: 1px;
     background-color: #C0C0C0;
     margin: 5px 0;
+}
+
+QSlider {
+    background-color: transparent;
+    margin: 0 10px;
+}
+
+QSlider::groove:horizontal {
+    background-color: #C0C0C0;
+    height: 8px;
+    border-radius: 4px;
+}
+
+QSlider::sub-page:horizontal {
+    background-color: #007BFF;
+    height: 8px;
+    border-radius: 4px;
+}
+
+QSlider::handle:horizontal {
+    background-color: #007BFF;
+    width: 20px;
+    height: 20px;
+    margin: -6px 0;  
+    border-radius: 10px;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+QSlider::handle:horizontal:hover {
+    background-color: #0056b3;
+    border: 2px solid #ffffff;
+}
+
+QSlider::add-page:horizontal {
+    background-color: #C0C0C0;
+    height: 8px;
+    border-radius: 4px;
+}
+
+QSlider::groove:vertical {
+    background-color: #C0C0C0;
+    width: 8px;
+    border-radius: 4px;
+}
+
+QSlider::sub-page:vertical {
+    background-color: #007BFF;
+    width: 8px;
+    border-radius: 4px;
+}
+
+QSlider::handle:vertical {
+    background-color: #007BFF;
+    width: 20px;
+    height: 20px;
+    margin: 0 -6px;
+    border-radius: 10px;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+QSlider::handle:vertical:hover {
+    background-color: #0056b3;
+    border: 2px solid #ffffff;
+}
+
+QSlider::add-page:vertical {
+    background-color: #C0C0C0;
+    width: 8px;
+    border-radius: 4px;
+}
+
+QScrollBar:vertical {
+    background-color: #f4f4f4;
+    width: 12px;
+    margin: 0px 0px 0px 0px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #C0C0C0;
+    border-radius: 6px;
+    min-height: 20px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #007BFF;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    background: none;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+QScrollBar:horizontal {
+    background-color: #f4f4f4;
+    height: 12px;
+    margin: 0px 0px 0px 0px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #C0C0C0;
+    border-radius: 6px;
+    min-width: 20px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #007BFF;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    background: none;
+}
+
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+}
+
+QTableWidget {
+    background-color: #ffffff;
+    border: 2px solid #C0C0C0;  
+    border-radius: 12px; 
+    gridline-color: #C0C0C0; 
+    padding: 5px; 
+    outline: none; 
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+QTableWidget::item {
+    padding: 8px;
+    border: none;
+    outline: none; 
+}
+
+QTableWidget::item:selected {
+    background-color: #007BFF;  
+    color: white;
+    outline: none; 
+}
+
+QTableWidget:focus {
+    outline: none; 
+}
+
+QHeaderView::section {
+    background-color: #f4f4f4;
+    color: #333;
+    padding: 8px;
+    border: none;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+QHeaderView {
+    background-color: transparent;
+    border: none;
+}
+
+QTableWidget QPushButton {
+    outline: none;
+}
+
+QPushButton:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
