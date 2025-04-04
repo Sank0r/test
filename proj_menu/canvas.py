@@ -8,21 +8,26 @@ class Canvas(QLabel):
         self.drawing = False
         self.last_coords = None
         self.leftButton = False
-        self.setStyleSheet("background-color: #E0FFFF")
+        self.setStyleSheet("border: 1px solid red")
         self.setScaledContents(False)
 
-        self.original_pixmap = QPixmap(width, height)
-        self.original_pixmap.fill(QColor('#E0FFFF')) 
-
-        self.drawing_pixmap = QPixmap(width, height)
-        self.drawing_pixmap.fill(QColor('transparent')) 
-
+        self.drawing_pixmap = QPixmap(width,height)
+        self.drawing_pixmap.fill(QColor('white')) 
+        
         self.scale_factor = 1.0
-
+        self.pencil_color = QColor('black')  
+        self.line_width = 7
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.update_canvas()
 
     def set_drawing(self, drawing):
         self.drawing = drawing
+
+    def set_pencil_color(self, color):
+        self.pencil_color = color
+
+    def set_line_width(self, width):
+        self.line_width = width
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self.drawing:
@@ -41,8 +46,8 @@ class Canvas(QLabel):
 
             painter = QPainter(self.drawing_pixmap)
             pen = painter.pen()
-            pen.setWidth(7)
-            pen.setColor(QColor('brown'))
+            pen.setWidth(self.line_width)
+            pen.setColor(self.pencil_color) 
             painter.setPen(pen)
             painter.drawLine(self.last_coords, current_pos)
             painter.end()
@@ -61,13 +66,9 @@ class Canvas(QLabel):
         return pos / self.scale_factor
 
     def update_canvas(self):
-        combined_pixmap = self.original_pixmap.copy()
-
-        painter = QPainter(combined_pixmap)
-        painter.drawPixmap(0, 0, self.drawing_pixmap)
-        painter.end()
-
-        scaled_pixmap = combined_pixmap.transformed(QTransform().scale(self.scale_factor, self.scale_factor),Qt.TransformationMode.SmoothTransformation)
+        combined_pixmap = self.drawing_pixmap.copy()
+        
+        scaled_pixmap = combined_pixmap.transformed(QTransform().scale(self.scale_factor, self.scale_factor), Qt.TransformationMode.SmoothTransformation)
         self.setPixmap(scaled_pixmap)
 
     def set_scale(self, scale_factor):

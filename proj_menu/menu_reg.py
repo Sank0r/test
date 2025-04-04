@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QPoint
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
-    QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, QFrame, QComboBox, QCheckBox,QSlider,QHBoxLayout
+    QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, QFrame, QComboBox, QCheckBox, QSlider, QHBoxLayout, QStatusBar
 )
 from PyQt6.QtGui import QIcon, QPixmap, QAction, QPainter, QColor, QFont
 
@@ -106,11 +106,13 @@ class LoginWindow(QMainWindow):
 
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText(LanguageConstants.get_constant("USERNAME_PLACEHOLDER", APPLICATION_LANGUAGE))
+
         form_layout.addRow(LanguageConstants.get_constant("USERNAME_WINDOW", APPLICATION_LANGUAGE), self.username_input)
 
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText(LanguageConstants.get_constant("PASSWORD_PLACEHOLDER", APPLICATION_LANGUAGE))
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+
         form_layout.addRow(LanguageConstants.get_constant("PASSWORD_WINDOW", APPLICATION_LANGUAGE), self.password_input)
 
         self.login_button = QPushButton(LanguageConstants.get_constant("LOGIN", APPLICATION_LANGUAGE))
@@ -252,7 +254,8 @@ class MainWindow(QMainWindow):
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.scroll.setWidgetResizable(True)
 
-        self.canvas = Canvas(3000, 2000) 
+        self.canvas = Canvas(4000,4000)
+        
         self.canvas.set_drawing(True)
         self.scroll.setWidget(self.canvas) 
 
@@ -265,13 +268,19 @@ class MainWindow(QMainWindow):
         self.zoom_status = QLabel("100%")
         self.zoom_status.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
-        self.zoom_slider.setVisible(False)
-        self.zoom_status.setVisible(False)
+        #self.zoom_slider.setVisible(False)
+        #self.zoom_status.setVisible(False)
 
-        zoom_layout = QHBoxLayout()
-        zoom_layout.addWidget(self.zoom_slider)
-        zoom_layout.addWidget(self.zoom_status)
-        main_layout.addLayout(zoom_layout)
+        self.zoom_layout = QHBoxLayout()
+        #zoom_layout.addWidget(self.zoom_slider)
+        #zoom_layout.addWidget(self.zoom_status)
+        main_layout.addLayout(self.zoom_layout)
+        self.zoom_layout_status = False
+
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+        self.line_width_label = QLabel("Толщина линии: 7")
+        self.status_bar.addPermanentWidget(self.line_width_label)
 
         self.prev_pos = None
         self.horizontal_pos = 0
@@ -288,13 +297,24 @@ class MainWindow(QMainWindow):
         self.scroll.mouseReleaseEvent = self.mouseReleaseEvent
 
     def toggle_zoom_slider(self):
-        self.zoom_slider.setVisible(not self.zoom_slider.isVisible())
-        self.zoom_status.setVisible(not self.zoom_status.isVisible())
+        #self.zoom_slider.setVisible(not self.zoom_slider.isVisible())
+        #self.zoom_status.setVisible(not self.zoom_status.isVisible())
+        if not self.zoom_layout_status:
+            self.zoom_layout.addWidget(self.zoom_slider)
+            self.zoom_layout.addWidget(self.zoom_status)
+        else:
+            self.zoom_layout.removeWidget(self.zoom_slider)
+            self.zoom_layout.removeWidget(self.zoom_status)
+        self.zoom_layout_status =not self.zoom_layout_status
+        
 
     def update_zoom(self):
         zoom_level = self.zoom_slider.value() / 100.0  
         self.zoom_status.setText(f"{int(zoom_level * 100)}%")
         self.canvas.set_scale(zoom_level)
+
+    def update_line_width_status(self, width):
+        self.line_width_label.setText(f"Толщина линии: {width}")
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.RightButton:
