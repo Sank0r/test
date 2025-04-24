@@ -34,20 +34,19 @@ class GridWindow(QMainWindow):
     def populate_table(self):
         icons = [
             "icon1.png", "icon2.png", "icon3.png",
-            "icon4.png", "icon5.png", "icon6.png",
-            "icon7.png", "icon8.png"
+            "icon4.png", "icon5.png", "icon6.png"
         ]
         icon_widget = QWidget()
         icon_layout = QGridLayout(icon_widget)
         icon_layout.setSpacing(0)
         icon_layout.setContentsMargins(0, 0, 0, 0)
 
-        for i in range(8):
+        for i in range(6):
             icon_button = QPushButton()
-            if i < 8:
+            if i < 6:
                 icon_button.setIcon(QIcon(icons[i]))      
             else:
-                icon_button.setText("-" if i == 8 else "+")
+                icon_button.setText("-" if i == 6 else "+")
             icon_button.setIconSize(QSize(32, 32))
             icon_button.setFixedSize(32, 32)
             icon_button.clicked.connect(lambda checked, i=i: self.on_icon_clicked(i))
@@ -64,27 +63,27 @@ class GridWindow(QMainWindow):
         if icon_index == 0:
             self.current_tool = "pencil"
             self.main_window.canvas.set_drawing(True)
+            self.main_window.show_line_width_slider()  
         elif icon_index == 1:
             self.current_tool = "color_picker"
             self.choose_pencil_color()
         elif icon_index == 2:
             self.current_tool = None
             self.main_window.canvas.set_drawing(False)
+            self.main_window.slider_container.hide()  
         elif icon_index == 3:
             self.current_tool = None
             self.main_window.canvas.set_drawing(False)
+            self.main_window.slider_container.hide() 
         elif icon_index == 4:
             self.current_tool = None
             self.main_window.canvas.set_drawing(False)
+            self.main_window.slider_container.hide()  
         elif icon_index == 5:
             if self.main_window:
-                self.main_window.toggle_zoom_slider()
-        elif icon_index == 6:
-            self.decrease_line_width()
-        elif icon_index == 7:
-            self.increase_line_width()
+                self.main_window.toggle_slider()
 
-        for i in range(8):
+        for i in range(6):
             button = self.table_widget.cellWidget(0, 0).layout().itemAt(i).widget()
             if i == icon_index:
                 button.setStyleSheet("QPushButton { border: none; padding: 0; margin: 0; border-radius: 5px; background-color: rgba(0, 0, 0, 0.1); }")
@@ -102,17 +101,5 @@ class GridWindow(QMainWindow):
             color = color_dialog.currentColor()
             if color.isValid():
                 self.pencil_color = color
-                self.main_window.canvas.set_pencil_color(color) 
-
-    def increase_line_width(self):
-        if self.line_width < 32:
-            self.line_width += 1
-            self.main_window.canvas.set_line_width(self.line_width)
-            self.main_window.update_line_width_status(self.line_width)
-
-    def decrease_line_width(self):
-        if self.line_width > 1:
-            self.line_width -= 1
-            self.main_window.canvas.set_line_width(self.line_width)
-            self.main_window.update_line_width_status(self.line_width)
-            
+                self.main_window.canvas.set_pencil_color(color)
+                

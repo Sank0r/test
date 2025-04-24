@@ -254,33 +254,39 @@ class MainWindow(QMainWindow):
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.scroll.setWidgetResizable(True)
 
-        self.canvas = Canvas(4000,4000)
-        
-        self.canvas.set_drawing(True)
-        self.scroll.setWidget(self.canvas) 
-
+        self.canvas = Canvas(4000, 4000)
+        self.canvas.set_drawing(False) 
+        self.scroll.setWidget(self.canvas)
         main_layout.addWidget(self.scroll)
+
         self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
-        self.zoom_slider.setRange(0, 500)  
-        self.zoom_slider.setValue(100) 
+        self.zoom_slider.setRange(10, 500)
+        self.zoom_slider.setValue(100)
         self.zoom_slider.valueChanged.connect(self.update_zoom)
+        
+        self.line_width_slider = QSlider(Qt.Orientation.Horizontal)
+        self.line_width_slider.setRange(1, 32)
+        self.line_width_slider.setValue(7)
+        self.line_width_slider.valueChanged.connect(self.update_line_width)
+        
+        self.value_label = QLabel("Масштаб: 100%")
+        self.value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.zoom_status = QLabel("100%")
-        self.zoom_status.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-
-        #self.zoom_slider.setVisible(False)
-        #self.zoom_status.setVisible(False)
-
-        self.zoom_layout = QHBoxLayout()
-        #zoom_layout.addWidget(self.zoom_slider)
-        #zoom_layout.addWidget(self.zoom_status)
-        main_layout.addLayout(self.zoom_layout)
-        self.zoom_layout_status = False
+        self.slider_container = QWidget()
+        self.slider_layout = QVBoxLayout(self.slider_container)
+        
+        self.current_slider = self.zoom_slider
+        self.slider_layout.addWidget(self.current_slider)
+        self.slider_layout.addWidget(self.value_label)
+        self.slider_container.hide()  
+        
+        main_layout.addWidget(self.slider_container)
 
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.line_width_label = QLabel("Толщина линии: 7")
-        self.status_bar.addPermanentWidget(self.line_width_label)
+        self.line_width_status = QLabel("Толщина линии: 7")
+        self.status_bar.addPermanentWidget(self.line_width_status)
+
 
         self.prev_pos = None
         self.horizontal_pos = 0
@@ -296,25 +302,44 @@ class MainWindow(QMainWindow):
         self.scroll.mousePressEvent = self.mousePressEvent
         self.scroll.mouseReleaseEvent = self.mouseReleaseEvent
 
-    def toggle_zoom_slider(self):
-        #self.zoom_slider.setVisible(not self.zoom_slider.isVisible())
-        #self.zoom_status.setVisible(not self.zoom_status.isVisible())
-        if not self.zoom_layout_status:
-            self.zoom_layout.addWidget(self.zoom_slider)
-            self.zoom_layout.addWidget(self.zoom_status)
+    def toggle_slider(self):
+        if self.slider_container.isVisible():
+            self.slider_container.hide()
         else:
-            self.zoom_layout.removeWidget(self.zoom_slider)
-            self.zoom_layout.removeWidget(self.zoom_status)
-        self.zoom_layout_status =not self.zoom_layout_status
+            self.show_zoom_slider()
+            self.slider_container.show()
+            
+    def show_zoom_slider(self):
+        self.switch_slider(self.zoom_slider)
+        self.update_zoom(self.zoom_slider.value())
         
+    def show_line_width_slider(self):
+        self.switch_slider(self.line_width_slider)
+        self.update_line_width(self.line_width_slider.value())
+        self.slider_container.show()
+        
+    def switch_slider(self, new_slider):
+        self.slider_layout.removeWidget(self.current_slider)
+        self.current_slider.hide()
 
-    def update_zoom(self):
-        zoom_level = self.zoom_slider.value() / 100.0  
-        self.zoom_status.setText(f"{int(zoom_level * 100)}%")
+        self.slider_layout.insertWidget(0, new_slider)
+        new_slider.show()
+
+        self.current_slider = new_slider
+        if new_slider == self.zoom_slider:
+            self.update_zoom(new_slider.value())
+        else:
+            self.update_line_width(new_slider.value())
+    
+    def update_zoom(self, value):
+        zoom_level = value / 100.0
+        self.value_label.setText(f"Масштаб: {value}%")
         self.canvas.set_scale(zoom_level)
-
-    def update_line_width_status(self, width):
-        self.line_width_label.setText(f"Толщина линии: {width}")
+    
+    def update_line_width(self, value):
+        self.value_label.setText(f"Толщина линии: {value}")
+        self.line_width_status.setText(f"Толщина линии: {value}")
+        self.canvas.set_line_width(value)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.RightButton:
@@ -353,3 +378,4 @@ if __name__ == "__main__":
     tray_icon_manager.set_login_window(window)  
     window.show()
     sys.exit(app.exec())
+    
