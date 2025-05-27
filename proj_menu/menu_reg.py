@@ -1,10 +1,10 @@
 import sys
-from PyQt6.QtCore import Qt, QSize, pyqtSignal, QPoint
+from PyQt6.QtCore import Qt, QSize, QPoint,QTime
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
     QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, QFrame, QComboBox, QCheckBox, QSlider, QHBoxLayout, QStatusBar
 )
-from PyQt6.QtGui import QIcon, QPixmap, QAction, QPainter, QColor, QFont
+from PyQt6.QtGui import QIcon, QPixmap, QAction, QPainter, QColor, QFont, QCursor
 
 import db_main
 import common
@@ -255,7 +255,7 @@ class MainWindow(QMainWindow):
         self.scroll.setWidgetResizable(True)
 
         self.canvas = Canvas(4000, 4000)
-        self.canvas.set_drawing(False) 
+        self.canvas.set_drawing(False)
         self.scroll.setWidget(self.canvas)
         main_layout.addWidget(self.scroll)
 
@@ -263,12 +263,12 @@ class MainWindow(QMainWindow):
         self.zoom_slider.setRange(10, 500)
         self.zoom_slider.setValue(100)
         self.zoom_slider.valueChanged.connect(self.update_zoom)
-        
+
         self.line_width_slider = QSlider(Qt.Orientation.Horizontal)
-        self.line_width_slider.setRange(1, 32)
+        self.line_width_slider.setRange(1, 64)
         self.line_width_slider.setValue(7)
         self.line_width_slider.valueChanged.connect(self.update_line_width)
-        
+
         self.value_label = QLabel("Масштаб: 100%")
         self.value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -287,20 +287,62 @@ class MainWindow(QMainWindow):
         self.line_width_status = QLabel("Толщина линии: 7")
         self.status_bar.addPermanentWidget(self.line_width_status)
 
+        self.pan_start = QPoint()
+        self.panning = False
+        self.last_pan_time = QTime.currentTime()
+        self.last_pan_pos = QPoint()
+        self.pan_base_speed = 1.5  # Базовая скорость
+        self.pan_max_speed = 4.0   # Максимальная скорость
+        self.pan_smoothing = 0.2   
 
-        self.prev_pos = None
-        self.horizontal_pos = 0
-        self.vertical_pos = 0
-        self.speed_factor = 3.5
-        self.reverse = -1
-        self.background_width = 3000
-        self.background_height = 2000
-        self.horizontal = lambda x: x if 0 <= x <= self.background_width else (0 if x < 0 else self.background_width)
-        self.vertical = lambda y: y if 0 <= y <= self.background_height else (0 if y < 0 else self.background_height)
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.RightButton:
+            self.pan_start = event.pos()
+            self.last_pan_pos = event.pos()
+            self.last_pan_time = QTime.currentTime()
+            self.panning = True
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        super().mousePressEvent(event)
 
-        self.scroll.mouseMoveEvent = self.mouseMoveEvent
-        self.scroll.mousePressEvent = self.mousePressEvent
-        self.scroll.mouseReleaseEvent = self.mouseReleaseEvent
+    def mouseMoveEvent(self, event):
+        if self.panning:
+            current_time = QTime.currentTime()
+            current_pos = event.pos()
+
+            time_diff = self.last_pan_time.msecsTo(current_time)
+            time_diff = max(1, time_diff)  
+            
+            distance = (current_pos - self.last_pan_pos).manhattanLength()
+            
+            current_speed = distance / time_diff
+            
+            speed_multiplier = min(self.pan_base_speed + current_speed * 10,self.pan_max_speed)
+            
+            if hasattr(self, 'last_speed_multiplier'):
+                speed_multiplier = (self.pan_smoothing * speed_multiplier + (1 - self.pan_smoothing) * self.last_speed_multiplier)
+            self.last_speed_multiplier = speed_multiplier
+            
+            delta = current_pos - self.pan_start
+            self.pan_start = current_pos
+            
+            x_scroll = self.scroll.horizontalScrollBar()
+            y_scroll = self.scroll.verticalScrollBar()
+            
+            x_scroll.setValue(x_scroll.value() - int(delta.x() * speed_multiplier))
+            y_scroll.setValue(y_scroll.value() - int(delta.y() * speed_multiplier))
+            
+            self.last_pan_pos = current_pos
+            self.last_pan_time = current_time
+            
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.RightButton:
+            self.panning = False
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            if hasattr(self, 'last_speed_multiplier'):
+                del self.last_speed_multiplier
+        super().mouseReleaseEvent(event)
 
     def toggle_slider(self):
         if self.slider_container.isVisible():
@@ -341,30 +383,12 @@ class MainWindow(QMainWindow):
         self.line_width_status.setText(f"Толщина линии: {value}")
         self.canvas.set_line_width(value)
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.RightButton:
-            self.prev_pos = event.position()
-
-    def mouseMoveEvent(self, event):
-        if event.buttons() & Qt.MouseButton.RightButton and self.prev_pos is not None:
-            delta = self.speed_factor * (event.position() - self.prev_pos)
-            new_pos = delta.toPoint()
-
-            self.horizontal_pos += new_pos.x() * self.reverse
-            self.horizontal_pos = self.horizontal(self.horizontal_pos)
-
-            self.vertical_pos += new_pos.y() * self.reverse
-            self.vertical_pos = self.vertical(self.vertical_pos)
-
-            self.scroll.horizontalScrollBar().setValue(self.horizontal_pos)
-            self.scroll.verticalScrollBar().setValue(self.vertical_pos)
-
-            self.prev_pos = event.position()
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.MouseButton.RightButton:
-            self.prev_pos = None
-            
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            if self.canvas.text_edit and self.canvas.text_edit.isVisible():
+                self.canvas.finish_text_input()
+        super().keyPressEvent(event)
+        
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     SettingsManager.read_settings()
@@ -378,4 +402,3 @@ if __name__ == "__main__":
     tray_icon_manager.set_login_window(window)  
     window.show()
     sys.exit(app.exec())
-    
