@@ -15,6 +15,7 @@ class GridWindow(QMainWindow):
         self.table_widget = QTableWidget()
         self.table_widget.setRowCount(1)
         self.table_widget.setColumnCount(1)
+        #self.header_label = QLabel("Инструменты")
         self.table_widget.setHorizontalHeaderLabels(["Инструменты"])
         self.table_widget.verticalHeader().setVisible(False)
 
