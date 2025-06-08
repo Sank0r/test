@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QHeaderView, QGridLayout, QPushButton, QColorDialog
+from PyQt6.QtWidgets import (QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QHeaderView,QGridLayout,QPushButton,QColorDialog)
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QColor
 
@@ -15,9 +15,9 @@ class GridWindow(QMainWindow):
         self.table_widget = QTableWidget()
         self.table_widget.setRowCount(1)
         self.table_widget.setColumnCount(1)
-        #self.header_label = QLabel("Инструменты")
         self.table_widget.setHorizontalHeaderLabels(["Инструменты"])
         self.table_widget.verticalHeader().setVisible(False)
+        self.table_widget.horizontalHeader().setDefaultSectionSize(50)
 
         self.populate_table()
 
@@ -36,24 +36,25 @@ class GridWindow(QMainWindow):
             "icon4.png", "icon5.png", "icon6.png"]
         icon_widget = QWidget()
         icon_layout = QGridLayout(icon_widget)
-        icon_layout.setSpacing(0)
-        icon_layout.setContentsMargins(0, 0, 0, 0)
+        icon_layout.setSpacing(10)
+        icon_layout.setContentsMargins(10, 10, 10, 10)
 
         for i in range(6):
             icon_button = QPushButton()
+            icon_button.setObjectName("iconButton")  
             if i < len(icons):
                 icon_button.setIcon(QIcon(icons[i]))      
             else:
                 icon_button.setText("-" if i == 6 else "+")
             icon_button.setIconSize(QSize(32, 32))
-            icon_button.setFixedSize(32, 32)
+            icon_button.setFixedSize(40, 40)
             icon_button.clicked.connect(lambda checked, i=i: self.on_icon_clicked(i))
             icon_layout.addWidget(icon_button, 0, i) 
 
         icon_widget.setLayout(icon_layout)
         self.table_widget.setCellWidget(0, 0, icon_widget)
-        self.table_widget.setRowHeight(0, 50) 
-        self.table_widget.setColumnWidth(0, 400)  
+        self.table_widget.setRowHeight(0, 60)
+        self.table_widget.setColumnWidth(0, 400)
 
     def on_icon_clicked(self, icon_index):
         if icon_index == 0:  # Карандаш
@@ -90,10 +91,8 @@ class GridWindow(QMainWindow):
 
         for i in range(6):
             button = self.table_widget.cellWidget(0, 0).layout().itemAt(i).widget()
-            if i == icon_index:
-                button.setStyleSheet("QPushButton { border: none; padding: 0; margin: 0; border-radius: 5px; background-color: rgba(0, 0, 0, 0.1); }")
-            else:
-                button.setStyleSheet("QPushButton { border: none; padding: 0; margin: 0; }")
+            button.setProperty("active", i == icon_index)
+            button.style().polish(button)  
 
     def choose_pencil_color(self):
         color_dialog = QColorDialog(self)

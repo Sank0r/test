@@ -180,23 +180,33 @@ class RegistrationWindow(QMainWindow):
         layout = QVBoxLayout(central_widget)
         form_layout = QFormLayout()
 
+        # Поле для имени пользователя
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText(LanguageConstants.get_constant("USERNAME_PLACEHOLDER", APPLICATION_LANGUAGE))
-        form_layout.addRow((LanguageConstants.get_constant("USERNAME_WINDOW", APPLICATION_LANGUAGE)), self.username_input)
+        form_layout.addRow(QLabel(LanguageConstants.get_constant("USERNAME_WINDOW", APPLICATION_LANGUAGE)), self.username_input)
 
+        # Поле для пароля
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText(LanguageConstants.get_constant("PASSWORD_PLACEHOLDER", APPLICATION_LANGUAGE))
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        form_layout.addRow((LanguageConstants.get_constant("PASSWORD_WINDOW", APPLICATION_LANGUAGE)), self.password_input)
+        form_layout.addRow(QLabel(LanguageConstants.get_constant("PASSWORD_WINDOW", APPLICATION_LANGUAGE)), self.password_input)
 
+        # Поле для никнейма
         self.description_input = QLineEdit()
         self.description_input.setPlaceholderText(LanguageConstants.get_constant("NICKNAME_PLACEHOLDER", APPLICATION_LANGUAGE))
-        form_layout.addRow((LanguageConstants.get_constant("NICKNAME", APPLICATION_LANGUAGE)), self.description_input)
+        form_layout.addRow(QLabel(LanguageConstants.get_constant("NICKNAME", APPLICATION_LANGUAGE)), self.description_input)
 
+        # Поле для даты рождения
         self.date_input = QDateEdit()
-        form_layout.addRow((LanguageConstants.get_constant("DATE_OF_BIRTH", APPLICATION_LANGUAGE)), self.date_input)
+        self.date_input.setCalendarPopup(False)  
+        self.date_input.setDisplayFormat("dd.MM.yyyy")
+        self.date_input.setButtonSymbols(QDateEdit.ButtonSymbols.NoButtons)
+        
+        form_layout.addRow(QLabel(LanguageConstants.get_constant("DATE_OF_BIRTH", APPLICATION_LANGUAGE)), self.date_input)
+
         register_button = QPushButton(LanguageConstants.get_constant("REGISTER", APPLICATION_LANGUAGE))
         register_button.clicked.connect(self.register_user)
+        register_button.setDefault(True)
 
         back_button = QPushButton(LanguageConstants.get_constant("BACK", APPLICATION_LANGUAGE))
         back_button.clicked.connect(self.back_to_login)
@@ -206,26 +216,49 @@ class RegistrationWindow(QMainWindow):
         layout.addWidget(back_button)
 
     def register_user(self):
-        username = self.username_input.text()
-        password = self.password_input.text()
-        password = common.get_md5_of_string(password)
-        description = self.description_input.text()
+        username = self.username_input.text().strip()
+        password = self.password_input.text().strip()
+        description = self.description_input.text().strip()
         date_of_birth = self.date_input.date().toString("yyyy-MM-dd")
 
-        try:
-            conn = db_main.connect_db("users.db", False)
-            data = db_main.request_select_db(conn, "SELECT count(*) FROM users WHERE login=? AND password=?", (username, password))
-        except db_main.DatabaseException as ex:
-            QMessageBox.critical(self, "Critical", ex.msg)
-        try:
-            conn = db_main.connect_db("users.db", False)
-            db_main.request_update_db(conn, "INSERT INTO users (login, password, type) VALUES (?, ?, ?)", (username, password, 1))
-            QMessageBox.information(self, (LanguageConstants.get_constant("REGISTRATION_COMPLETED_QMENU", APPLICATION_LANGUAGE)), (LanguageConstants.get_constant("REGISTRATION_COMPLETED", APPLICATION_LANGUAGE)))
-            self.back_to_login()
-        except db_main.DatabaseException as ex:
-            QMessageBox.warning(self, (LanguageConstants.get_constant("USER_ERROR", APPLICATION_LANGUAGE)), (LanguageConstants.get_constant("USER_ALREADY_EXISTS", APPLICATION_LANGUAGE)))
+        if not username:
+            QMessageBox.warning(self,LanguageConstants.get_constant("WARNING", APPLICATION_LANGUAGE),LanguageConstants.get_constant("USERNAME_EMPTY", APPLICATION_LANGUAGE))
+            self.username_input.setFocus()
+            return
 
-        db_main.disconnect_db(conn)
+        if not password:
+            QMessageBox.warning(self,LanguageConstants.get_constant("WARNING", APPLICATION_LANGUAGE),LanguageConstants.get_constant("PASSWORD_EMPTY", APPLICATION_LANGUAGE))
+            self.password_input.setFocus()
+            return
+
+        if len(password) < 6:
+            QMessageBox.warning(self,LanguageConstants.get_constant("WARNING", APPLICATION_LANGUAGE),LanguageConstants.get_constant("PASSWORD_TOO_SHORT", APPLICATION_LANGUAGE))
+            self.password_input.setFocus()
+            return
+
+        password_hash = common.get_md5_of_string(password)
+        conn = None
+
+        try:
+            conn = db_main.connect_db("users.db", False)
+            user_exists = db_main.request_select_db(conn,"SELECT count(*) FROM users WHERE login=?",(username,))[0][0]
+
+            if user_exists:
+                QMessageBox.warning(self,LanguageConstants.get_constant("USER_ERROR", APPLICATION_LANGUAGE),LanguageConstants.get_constant("USER_ALREADY_EXISTS", APPLICATION_LANGUAGE))
+                self.username_input.setFocus()
+                return
+
+            db_main.request_update_db(conn,"INSERT INTO users (login, password, description, birth_date, type) VALUES (?, ?, ?, ?, ?)",(username, password_hash, description, date_of_birth, 1))
+
+            QMessageBox.information(self,LanguageConstants.get_constant("REGISTRATION_COMPLETED_QMENU", APPLICATION_LANGUAGE),LanguageConstants.get_constant("REGISTRATION_COMPLETED", APPLICATION_LANGUAGE))
+            
+            self.back_to_login()
+
+        except db_main.DatabaseException as ex:
+            QMessageBox.critical(self,LanguageConstants.get_constant("ERROR", APPLICATION_LANGUAGE),f"{LanguageConstants.get_constant('DATABASE_ERROR', APPLICATION_LANGUAGE)}: {ex.msg}")
+        finally:
+            if conn:
+                db_main.disconnect_db(conn)
 
     def back_to_login(self):
         self.login_window = LoginWindow(self.tray_icon_manager)

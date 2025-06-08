@@ -10,7 +10,6 @@ class Canvas(QLabel):
         self.leftButton = False
         self.eraser_mode = False
         self.text_mode = False
-        self.setStyleSheet("border: 1px solid red")
         self.setScaledContents(False)
         
         self.drawing_pixmap = QPixmap(width, height)
