@@ -2,8 +2,7 @@ import sys
 from PyQt6.QtCore import Qt, QSize, QPoint,QTime
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
-    QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, QFrame, QComboBox, QCheckBox, QSlider, QHBoxLayout, QStatusBar
-)
+    QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, QFrame, QComboBox, QCheckBox, QSlider, QHBoxLayout, QStatusBar)
 from PyQt6.QtGui import QIcon, QPixmap, QAction, QPainter, QColor, QFont, QCursor
 
 import db_main
