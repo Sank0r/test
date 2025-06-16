@@ -1,7 +1,7 @@
 import os
 from PyQt6.QtWidgets import (QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, 
                             QWidget, QHeaderView, QGridLayout, QPushButton, 
-                            QColorDialog, QFileDialog, QMessageBox, QDialog, QHBoxLayout)
+                            QColorDialog, QFileDialog, QMessageBox)
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QColor, QPixmap
 
@@ -14,12 +14,6 @@ class GridWindow(QMainWindow):
         self.current_tool = None  
         self.pencil_color = QColor('black')  
         self.line_width = 7
-        self.current_shape = None
-
-        self.shape_icons = {
-            "Круг": QIcon("circle.png"),
-            "Квадрат": QIcon("square.png")
-        }
 
         self.table_widget = QTableWidget()
         self.table_widget.setRowCount(1)
@@ -74,7 +68,6 @@ class GridWindow(QMainWindow):
             self.main_window.canvas.set_drawing(True)
             self.main_window.canvas.set_eraser_mode(False)
             self.main_window.canvas.set_text_mode(False)
-            self.main_window.canvas.set_shape_mode(False)
             self.main_window.show_line_width_slider()
         elif icon_index == 1:  # Выбор цвета
             self.current_tool = "color_picker"
@@ -84,23 +77,22 @@ class GridWindow(QMainWindow):
             self.main_window.canvas.set_drawing(True)
             self.main_window.canvas.set_eraser_mode(True)
             self.main_window.canvas.set_text_mode(False)
-            self.main_window.canvas.set_shape_mode(False)
             self.main_window.show_line_width_slider()
         elif icon_index == 3:  # Текст
             self.current_tool = "text"
             self.main_window.canvas.set_drawing(False)
             self.main_window.canvas.set_eraser_mode(False)
             self.main_window.canvas.set_text_mode(True)
-            self.main_window.canvas.set_shape_mode(False)
             self.main_window.slider_container.hide()
-        elif icon_index == 4:  # Фигуры
-            self.current_tool = "shape"
-            self.show_shape_dialog()
+        elif icon_index == 4:  
+            self.current_tool = None
+            self.main_window.canvas.set_drawing(False)
+            self.main_window.canvas.set_text_mode(False)
+            self.main_window.slider_container.hide()
         elif icon_index == 5:  # Масштаб
             self.current_tool = None
             self.main_window.canvas.set_drawing(False)
             self.main_window.canvas.set_text_mode(False)
-            self.main_window.canvas.set_shape_mode(False)
             self.main_window.toggle_slider()
         elif icon_index == 6:  # Сохранение
             self.save_canvas()
@@ -111,55 +103,6 @@ class GridWindow(QMainWindow):
             button = self.table_widget.cellWidget(0, 0).layout().itemAt(i).widget()
             button.setProperty("active", i == icon_index)
             button.style().polish(button)  
-
-    def show_shape_dialog(self):
-        shape_dialog = QDialog(self)
-        shape_dialog.setWindowTitle("Выберите фигуру")
-        shape_dialog.setFixedSize(250, 100)
-        
-        layout = QHBoxLayout()
-        layout.setSpacing(10)
-        layout.setContentsMargins(10, 10, 10, 10)
-        
-        for shape_name, icon in self.shape_icons.items():
-            btn = QPushButton()
-            btn.setIcon(icon)
-            btn.setIconSize(QSize(48, 48))
-            btn.setToolTip(shape_name)
-            btn.setFixedSize(60, 60)
-            btn.setStyleSheet("""
-                QPushButton {
-                    border: 1px solid #ccc;
-                    border-radius: 5px;
-                    padding: 5px;
-                    background: white;
-                }
-                QPushButton:hover {
-                    background: #f0f0f0;
-                }
-                QPushButton:pressed {
-                    background: #e0e0e0;
-                }
-            """)
-            btn.clicked.connect(lambda _, s=shape_name: self.on_shape_selected(s))
-            layout.addWidget(btn)
-        
-        shape_dialog.setLayout(layout)
-        shape_dialog.exec()
-
-    def on_shape_selected(self, shape):
-        if not self.main_window or not hasattr(self.main_window, 'canvas'):
-            return
-            
-        self.current_shape = shape
-        self.main_window.canvas.set_drawing(True)
-        self.main_window.canvas.set_shape_mode(True, shape)
-        self.main_window.show_line_width_slider()
-        
-        for i in range(8):
-            btn = self.table_widget.cellWidget(0, 0).layout().itemAt(i).widget()
-            btn.setProperty("active", i == 4)
-            btn.style().polish(btn)
 
     def choose_pencil_color(self):
         color_dialog = QColorDialog(self)
