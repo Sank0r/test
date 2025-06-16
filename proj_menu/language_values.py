@@ -39,6 +39,7 @@ class LanguageConstants:
     USERNAME_EMPTY = ["Username cannot be empty", "Логин не может быть пустым"]
     PASSWORD_EMPTY = ["Password cannot be empty", "Пароль не может быть пустым"]
     PASSWORD_TOO_SHORT = ["Password must be at least 6 characters long", "Пароль должен содержать минимум 6 символов"]
+    USERNAME_TOO_SHORT = ["Username must be at least 6 characters long", "Логин должен содержать минимум 6 символов"]
     
     @staticmethod
     def get_constant(name, language):

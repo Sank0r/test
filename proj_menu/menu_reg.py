@@ -236,6 +236,11 @@ class RegistrationWindow(QMainWindow):
             self.password_input.setFocus()
             return
 
+        if len(username) < 6:
+            QMessageBox.warning(self,LanguageConstants.get_constant("WARNING", APPLICATION_LANGUAGE),LanguageConstants.get_constant("USERNAME_TOO_SHORT", APPLICATION_LANGUAGE))
+            self.password_input.setFocus()
+            return
+
         password_hash = common.get_md5_of_string(password)
         conn = None
 
@@ -292,7 +297,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.scroll)
 
         self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
-        self.zoom_slider.setRange(10, 500)
+        self.zoom_slider.setRange(10, 300)
         self.zoom_slider.setValue(100)
         self.zoom_slider.valueChanged.connect(self.update_zoom)
 
