@@ -1,11 +1,10 @@
 online desk application
-12:34 08.06.2025
+
 it's a very fabulious thing for online chating
 it contains most powerfull items
 
 There are a few user account for testing program:
 	felix/1234
-	3/3
 
 Issues:
 1) Fixing zoom button behaviour to enable user acting into more slightly way.
@@ -21,5 +20,5 @@ with tools.
 3) Проверено наличие пустого имени пользователя / пароля при регистрации +
 4) Создана кнопка для рисования фигур в области -
 5) Закрепление поведения QSlider в области. Оно должно быть видимым и изменяться при взаимодействии пользователя
-с инструментами. -
-6)Нужно добавить кнопки сохранения и загрузки Qpixmap 
+с инструментами. +
+6)Нужно добавить кнопки сохранения и загрузки Qpixmap +

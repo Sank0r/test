@@ -1,8 +1,13 @@
+import os
 import sys
-from PyQt6.QtCore import Qt, QSize, QPoint,QTime
+import chat
+import importlib.util
+import subprocess
+from PyQt6.QtCore import Qt, QSize, QPoint, QTime
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
-    QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, QFrame, QComboBox, QCheckBox, QSlider, QHBoxLayout, QStatusBar)
+    QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, 
+    QFrame, QComboBox, QCheckBox, QSlider, QHBoxLayout, QStatusBar)
 from PyQt6.QtGui import QIcon, QPixmap, QAction, QPainter, QColor, QFont, QCursor
 
 import db_main
@@ -75,51 +80,59 @@ class LoginWindow(QMainWindow):
         super().__init__()
         self.tray_icon_manager = tray_icon_manager
 
+        # Настройка статусбара и меню
         self.statusBar()
+        
+        # Действие для настроек
         self.setAct = QAction(QIcon('gear.png'), '&Settings', self)
         self.setAct.setShortcut('Ctrl+Q')
         self.setAct.setStatusTip('Set Up Application')
         self.setAct.triggered.connect(self.show_settings)
-        
-        self.testAct = QAction(QIcon('television-test.png'), '&Test', self)
-        self.testAct.setShortcut('Ctrl+T')
-        self.testAct.setStatusTip('Test External Function')
-        self.testAct.triggered.connect(self.test_function)
-        
-        self.menubar = self.menuBar()
-        self.fileMenu = self.menubar.addMenu('&{0}'.format('Manager'))
-        self.fileMenu.addAction(self.setAct)
-        self.fileMenu.addAction(self.testAct)
 
+        # Действие для сетевого взаимодействия 
+        self.setNet = QAction(QIcon('gear.png'), '&Connection', self)
+        self.setNet.setShortcut('Ctrl+R')
+        self.setNet.setStatusTip('Set Up Connection')
+        self.setNet.triggered.connect(self.show_network)
+        
+        # Создание меню
+        self.menubar = self.menuBar()
+        self.fileMenu = self.menubar.addMenu('&Manager')
+        self.fileMenu.addAction(self.setAct)
+
+        self.fileMenu = self.menubar.addMenu('&Network')
+        self.fileMenu.addAction(self.setNet)
+        
+        # Основные настройки окна
         self.setWindowTitle(LanguageConstants.get_constant("LOGIN", APPLICATION_LANGUAGE))
         self.setFixedSize(APPLICATION_SCREEN_SIZE[0], APPLICATION_SCREEN_SIZE[1])
         self.setWindowIcon(QIcon("icon.png"))
 
+        # Центральный виджет и основной лейаут
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-
         layout = QVBoxLayout(central_widget)
         form_layout = QFormLayout()
         
-        self.grid_window = grid_main.GridWindow()
-
+        # Поле ввода имени пользователя
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText(LanguageConstants.get_constant("USERNAME_PLACEHOLDER", APPLICATION_LANGUAGE))
-
         form_layout.addRow(LanguageConstants.get_constant("USERNAME_WINDOW", APPLICATION_LANGUAGE), self.username_input)
 
+        # Поле ввода пароля
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText(LanguageConstants.get_constant("PASSWORD_PLACEHOLDER", APPLICATION_LANGUAGE))
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-
         form_layout.addRow(LanguageConstants.get_constant("PASSWORD_WINDOW", APPLICATION_LANGUAGE), self.password_input)
 
+        # Кнопки входа и регистрации
         self.login_button = QPushButton(LanguageConstants.get_constant("LOGIN", APPLICATION_LANGUAGE))
         self.login_button.clicked.connect(self.handle_login)
 
         self.register_button = QPushButton(LanguageConstants.get_constant("REGISTER", APPLICATION_LANGUAGE))
         self.register_button.clicked.connect(self.open_registration_window)
 
+        # Добавление элементов в лейаут
         layout.addLayout(form_layout)
         layout.addWidget(self.login_button)
         layout.addWidget(self.register_button)
@@ -131,8 +144,8 @@ class LoginWindow(QMainWindow):
         settings_window = SettingsWindow()
         settings_window.exec()
 
-    def test_function(self):
-        self.grid_window.show()
+    def show_network(self):
+        chatApp = chat.ChatApp().run()
 
     def handle_login(self):
         username = self.username_input.text()
@@ -142,19 +155,20 @@ class LoginWindow(QMainWindow):
         try:
             conn = db_main.connect_db("users.db", False)
             data = db_main.request_select_db(conn, "SELECT count(*) FROM users WHERE login=? AND password=?", (username, password))
+                
+            count_user = data[0][0]
+            user_exist = bool(count_user)
+
+            if user_exist:
+                self.open_main_window()
+            else:
+                QMessageBox.warning(self, "Warning", LanguageConstants.get_constant("INVALID_CREDENTIALS", APPLICATION_LANGUAGE))
+
         except db_main.DatabaseException as ex:
             QMessageBox.critical(self, "Critical", ex.msg)
-            return
-            
-        count_user = data[0][0]
-        user_exist = bool(count_user)
-
-        if user_exist:
-            self.open_main_window()
-        else:
-            QMessageBox.warning(self, "Warning", "Неверный ввод данных")
-
-        db_main.disconnect_db(conn)
+        finally:
+            if 'conn' in locals():
+                db_main.disconnect_db(conn)
 
     def open_registration_window(self):
         self.registration_window = RegistrationWindow(self.tray_icon_manager)
@@ -180,23 +194,19 @@ class RegistrationWindow(QMainWindow):
         layout = QVBoxLayout(central_widget)
         form_layout = QFormLayout()
 
-        # Поле для имени пользователя
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText(LanguageConstants.get_constant("USERNAME_PLACEHOLDER", APPLICATION_LANGUAGE))
         form_layout.addRow(QLabel(LanguageConstants.get_constant("USERNAME_WINDOW", APPLICATION_LANGUAGE)), self.username_input)
 
-        # Поле для пароля
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText(LanguageConstants.get_constant("PASSWORD_PLACEHOLDER", APPLICATION_LANGUAGE))
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         form_layout.addRow(QLabel(LanguageConstants.get_constant("PASSWORD_WINDOW", APPLICATION_LANGUAGE)), self.password_input)
 
-        # Поле для никнейма
         self.description_input = QLineEdit()
         self.description_input.setPlaceholderText(LanguageConstants.get_constant("NICKNAME_PLACEHOLDER", APPLICATION_LANGUAGE))
         form_layout.addRow(QLabel(LanguageConstants.get_constant("NICKNAME", APPLICATION_LANGUAGE)), self.description_input)
 
-        # Поле для даты рождения
         self.date_input = QDateEdit()
         self.date_input.setCalendarPopup(False)  
         self.date_input.setDisplayFormat("dd.MM.yyyy")
@@ -296,15 +306,29 @@ class MainWindow(QMainWindow):
         self.scroll.setWidget(self.canvas)
         main_layout.addWidget(self.scroll)
 
+        # Слайдер масштаба
         self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
-        self.zoom_slider.setRange(10, 300)
+        self.zoom_slider.setRange(10, 200)
         self.zoom_slider.setValue(100)
         self.zoom_slider.valueChanged.connect(self.update_zoom)
 
+        # Слайдер толщины линии
         self.line_width_slider = QSlider(Qt.Orientation.Horizontal)
         self.line_width_slider.setRange(1, 64)
         self.line_width_slider.setValue(7)
         self.line_width_slider.valueChanged.connect(self.update_line_width)
+
+        # Слайдер размера ластика
+        self.eraser_width_slider = QSlider(Qt.Orientation.Horizontal)
+        self.eraser_width_slider.setRange(1, 64)
+        self.eraser_width_slider.setValue(7)
+        self.eraser_width_slider.valueChanged.connect(self.update_eraser_width)
+
+        # Слайдер размера текста
+        self.text_size_slider = QSlider(Qt.Orientation.Horizontal)
+        self.text_size_slider.setRange(6, 192)  
+        self.text_size_slider.setValue(21)      
+        self.text_size_slider.valueChanged.connect(self.update_text_size)
 
         self.value_label = QLabel("Масштаб: 100%")
         self.value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -328,9 +352,9 @@ class MainWindow(QMainWindow):
         self.panning = False
         self.last_pan_time = QTime.currentTime()
         self.last_pan_pos = QPoint()
-        self.pan_base_speed = 1.5  # Базовая скорость
-        self.pan_max_speed = 4.0   # Максимальная скорость
-        self.pan_smoothing = 0.2   
+        self.pan_base_speed = 1.5
+        self.pan_max_speed = 3.0
+        self.pan_smoothing = 0.2
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.RightButton:
@@ -353,7 +377,7 @@ class MainWindow(QMainWindow):
             
             current_speed = distance / time_diff
             
-            speed_multiplier = min(self.pan_base_speed + current_speed * 10,self.pan_max_speed)
+            speed_multiplier = min(self.pan_base_speed + current_speed * 10, self.pan_max_speed)
             
             if hasattr(self, 'last_speed_multiplier'):
                 speed_multiplier = (self.pan_smoothing * speed_multiplier + (1 - self.pan_smoothing) * self.last_speed_multiplier)
@@ -397,6 +421,16 @@ class MainWindow(QMainWindow):
         self.update_line_width(self.line_width_slider.value())
         self.slider_container.show()
         
+    def show_eraser_slider(self):
+        self.switch_slider(self.eraser_width_slider)
+        self.update_eraser_width(self.eraser_width_slider.value())
+        self.slider_container.show()
+        
+    def show_text_slider(self):
+        self.switch_slider(self.text_size_slider)
+        self.update_text_size(self.text_size_slider.value())
+        self.slider_container.show()
+        
     def switch_slider(self, new_slider):
         self.slider_layout.removeWidget(self.current_slider)
         self.current_slider.hide()
@@ -407,8 +441,12 @@ class MainWindow(QMainWindow):
         self.current_slider = new_slider
         if new_slider == self.zoom_slider:
             self.update_zoom(new_slider.value())
-        else:
+        elif new_slider == self.line_width_slider:
             self.update_line_width(new_slider.value())
+        elif new_slider == self.eraser_width_slider:
+            self.update_eraser_width(new_slider.value())
+        elif new_slider == self.text_size_slider:
+            self.update_text_size(new_slider.value())
     
     def update_zoom(self, value):
         zoom_level = value / 100.0
@@ -419,6 +457,15 @@ class MainWindow(QMainWindow):
         self.value_label.setText(f"Толщина линии: {value}")
         self.line_width_status.setText(f"Толщина линии: {value}")
         self.canvas.set_line_width(value)
+        
+    def update_eraser_width(self, value):
+        self.value_label.setText(f"Размер ластика: {value}")
+        self.line_width_status.setText(f"Размер ластика: {value}")
+        self.canvas.set_line_width(value)
+        
+    def update_text_size(self, value):
+        self.value_label.setText(f"Размер текста: {value}")
+        self.canvas.set_text_size(value)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
@@ -439,3 +486,4 @@ if __name__ == "__main__":
     tray_icon_manager.set_login_window(window)  
     window.show()
     sys.exit(app.exec())
+    

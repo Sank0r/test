@@ -58,9 +58,16 @@ class Canvas(QLabel):
 
     def set_line_width(self, width):
         self.line_width = width
-        if hasattr(self, 'text_edit') and self.text_edit:
+        if hasattr(self, 'text_edit') and self.text_edit and not self.text_mode:
             font = self.text_edit.font()
             font.setPixelSize(width * 3)
+            self.text_edit.setFont(font)
+
+    def set_text_size(self, size):
+        self.line_width = size // 3  # Сохраняем связь с толщиной линии
+        if hasattr(self, 'text_edit') and self.text_edit:
+            font = self.text_edit.font()
+            font.setPixelSize(size)
             self.text_edit.setFont(font)
 
     def mousePressEvent(self, event):
@@ -191,3 +198,4 @@ class Canvas(QLabel):
         if hasattr(self, 'text_edit') and self.text_edit:
             self.text_edit.hide()
         self.update_canvas()
+        

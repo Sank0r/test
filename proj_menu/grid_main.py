@@ -77,13 +77,13 @@ class GridWindow(QMainWindow):
             self.main_window.canvas.set_drawing(True)
             self.main_window.canvas.set_eraser_mode(True)
             self.main_window.canvas.set_text_mode(False)
-            self.main_window.show_line_width_slider()
+            self.main_window.show_eraser_slider()
         elif icon_index == 3:  # Текст
             self.current_tool = "text"
             self.main_window.canvas.set_drawing(False)
             self.main_window.canvas.set_eraser_mode(False)
             self.main_window.canvas.set_text_mode(True)
-            self.main_window.slider_container.hide()
+            self.main_window.show_text_slider()
         elif icon_index == 4:  
             self.current_tool = None
             self.main_window.canvas.set_drawing(False)
