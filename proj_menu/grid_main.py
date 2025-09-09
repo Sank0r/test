@@ -1,7 +1,7 @@
 import os
 from PyQt6.QtWidgets import (QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, 
                             QWidget, QHeaderView, QGridLayout, QPushButton, 
-                            QColorDialog, QFileDialog, QMessageBox)
+                            QColorDialog, QFileDialog, QMessageBox, QMenu)
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QColor, QPixmap
 
@@ -14,6 +14,7 @@ class GridWindow(QMainWindow):
         self.current_tool = None  
         self.pencil_color = QColor('black')  
         self.line_width = 7
+        self.shape_type = None  # Добавлено: тип фигуры
 
         self.table_widget = QTableWidget()
         self.table_widget.setRowCount(1)
@@ -68,6 +69,7 @@ class GridWindow(QMainWindow):
             self.main_window.canvas.set_drawing(True)
             self.main_window.canvas.set_eraser_mode(False)
             self.main_window.canvas.set_text_mode(False)
+            self.main_window.canvas.set_shape_mode(False)  
             self.main_window.show_line_width_slider()
         elif icon_index == 1:  # Выбор цвета
             self.current_tool = "color_picker"
@@ -77,22 +79,27 @@ class GridWindow(QMainWindow):
             self.main_window.canvas.set_drawing(True)
             self.main_window.canvas.set_eraser_mode(True)
             self.main_window.canvas.set_text_mode(False)
+            self.main_window.canvas.set_shape_mode(False)  
             self.main_window.show_eraser_slider()
         elif icon_index == 3:  # Текст
             self.current_tool = "text"
             self.main_window.canvas.set_drawing(False)
             self.main_window.canvas.set_eraser_mode(False)
             self.main_window.canvas.set_text_mode(True)
+            self.main_window.canvas.set_shape_mode(False)  
             self.main_window.show_text_slider()
-        elif icon_index == 4:  
-            self.current_tool = None
+        elif icon_index == 4:  # Фигуры
+            self.current_tool = "shape"
             self.main_window.canvas.set_drawing(False)
             self.main_window.canvas.set_text_mode(False)
-            self.main_window.slider_container.hide()
+            self.main_window.canvas.set_eraser_mode(False)
+            self.main_window.canvas.set_shape_mode(True)  
+            self.show_shape_menu()
         elif icon_index == 5:  # Масштаб
             self.current_tool = None
             self.main_window.canvas.set_drawing(False)
             self.main_window.canvas.set_text_mode(False)
+            self.main_window.canvas.set_shape_mode(False)  
             self.main_window.toggle_slider()
         elif icon_index == 6:  # Сохранение
             self.save_canvas()
@@ -103,6 +110,25 @@ class GridWindow(QMainWindow):
             button = self.table_widget.cellWidget(0, 0).layout().itemAt(i).widget()
             button.setProperty("active", i == icon_index)
             button.style().polish(button)  
+
+    def show_shape_menu(self):
+        menu = QMenu(self)
+        
+        rectangle_action = menu.addAction("Прямоугольник")
+        rectangle_action.triggered.connect(lambda: self.set_shape_type("rectangle"))
+        
+        circle_action = menu.addAction("Круг")
+        circle_action.triggered.connect(lambda: self.set_shape_type("circle"))
+        
+        line_action = menu.addAction("Линия")
+        line_action.triggered.connect(lambda: self.set_shape_type("line"))
+        
+        menu.exec(self.mapToGlobal(self.table_widget.cellWidget(0, 0).layout().itemAt(4).widget().pos()))
+
+    def set_shape_type(self, shape_type):
+        self.shape_type = shape_type
+        self.main_window.canvas.set_shape_type(shape_type)
+        self.main_window.show_line_width_slider()
 
     def choose_pencil_color(self):
         color_dialog = QColorDialog(self)

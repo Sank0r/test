@@ -1,15 +1,16 @@
 import os
 import sys
+import socket
+from datetime import datetime
 import chat
 import importlib.util
 import subprocess
 from PyQt6.QtCore import Qt, QSize, QPoint, QTime
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
+    QGroupBox, QApplication, QMainWindow, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
     QWidget, QMessageBox, QLabel, QTextEdit, QDateEdit, QScrollArea, QDialog, 
     QFrame, QComboBox, QCheckBox, QSlider, QHBoxLayout, QStatusBar)
 from PyQt6.QtGui import QIcon, QPixmap, QAction, QPainter, QColor, QFont, QCursor
-
 import db_main
 import common
 import grid_main
@@ -26,7 +27,7 @@ PALETTE_SCREEN_SIZE = (640, 480)
 
 def load_stylesheet(style):
     try:
-        with open(style, "r") as file:
+        with open(style, "r", encoding='utf-8') as file:  
             return file.read()
     except FileNotFoundError:
         print(LanguageConstants.get_constant("STYLESHEET_FILE_NOT_FOUND", APPLICATION_LANGUAGE))
@@ -36,13 +37,20 @@ class SettingsWindow(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(LanguageConstants.get_constant("SETTINGS", APPLICATION_LANGUAGE))
-        self.setFixedSize(APPLICATION_SCREEN_SIZE[0], APPLICATION_SCREEN_SIZE[1])
+        self.setFixedSize(600, 500) 
         self.setWindowIcon(QIcon("gear.png"))
 
         self.layout = QVBoxLayout(self)
+        self.layout.setSpacing(10)
+        self.layout.setContentsMargins(10, 10, 10, 10)
         
-        self.inputs = {} 
+        self.inputs = {}
 
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        
         current_setting = SettingsManager.get_next_section()
         while True:
             section_data = current_setting()
@@ -51,29 +59,35 @@ class SettingsWindow(QDialog):
             
             section_values, section_name = section_data
             
-            label = QLabel(f"[{section_name}]")
-            self.layout.addWidget(label)
-
+            # Группа для секции
+            group = QGroupBox(LanguageConstants.get_section_name(section_name, APPLICATION_LANGUAGE))
+            group_layout = QFormLayout()
+            group_layout.setVerticalSpacing(10)
+            
             for key, value in section_values.items():
+                label = QLabel(LanguageConstants.get_param_name(key, APPLICATION_LANGUAGE) + ":")
                 line_edit = QLineEdit(value)
-                line_edit.setPlaceholderText(key)
-                self.layout.addWidget(line_edit)
-                self.inputs[section_name + "@@" + key] = line_edit  
+                group_layout.addRow(label, line_edit)
+                self.inputs[f"{section_name}@@{key}"] = line_edit
+            
+            group.setLayout(group_layout)
+            content_layout.addWidget(group)
+        
+        content_layout.addStretch()
+        scroll.setWidget(content_widget)
+        self.layout.addWidget(scroll)
 
-        save_button = QPushButton(LanguageConstants.get_constant("SAVE", APPLICATION_LANGUAGE))
-        save_button.clicked.connect(self.save_settings)
-        self.layout.addWidget(save_button)
-
-        self.setLayout(self.layout)
+        btn_save = QPushButton(LanguageConstants.get_constant("SAVE", APPLICATION_LANGUAGE))
+        btn_save.clicked.connect(self.save_settings)
+        self.layout.addWidget(btn_save)
 
     def save_settings(self):
         for key, line_edit in self.inputs.items():
-            (section_name, real_key) = key.split("@@")
-            if section_name:
-                SettingsManager.set_setting(section_name, real_key, line_edit.text())
-
+            section, param = key.split("@@")
+            SettingsManager.set_setting(section, param, line_edit.text())
+        
         SettingsManager.save_settings()
-        QMessageBox.information(self, "Settings", LanguageConstants.get_constant("SETTINGS_SAVED", APPLICATION_LANGUAGE))
+        QMessageBox.information(self, LanguageConstants.get_constant("SETTINGS", APPLICATION_LANGUAGE),LanguageConstants.get_constant("SETTINGS_SAVED", APPLICATION_LANGUAGE))
 
 class LoginWindow(QMainWindow):
     def __init__(self, tray_icon_manager):
@@ -160,9 +174,9 @@ class LoginWindow(QMainWindow):
             user_exist = bool(count_user)
 
             if user_exist:
-                self.open_main_window()
+                self.open_welcome_window(username)
             else:
-                QMessageBox.warning(self, "Warning", LanguageConstants.get_constant("INVALID_CREDENTIALS", APPLICATION_LANGUAGE))
+                QMessageBox.warning(self, "Warning", "Invalid username or password")
 
         except db_main.DatabaseException as ex:
             QMessageBox.critical(self, "Critical", ex.msg)
@@ -170,15 +184,201 @@ class LoginWindow(QMainWindow):
             if 'conn' in locals():
                 db_main.disconnect_db(conn)
 
+    def open_welcome_window(self, username):
+        self.welcome_window = WelcomeWindow(self.tray_icon_manager, username)
+        self.welcome_window.show()
+        self.hide()
+
     def open_registration_window(self):
         self.registration_window = RegistrationWindow(self.tray_icon_manager)
         self.registration_window.show()
         self.hide()
+        
+class WelcomeWindow(QMainWindow):
+    def __init__(self, tray_icon_manager, username):
+        super().__init__()
+        self.tray_icon_manager = tray_icon_manager
+        self.username = username
+        self.canvas_size = (4000, 4000)
+        self.user_id = None
+        self.setWindowTitle("Меню")
+        self.setFixedSize(1200, 800)
+        self.setWindowIcon(QIcon("icon.png"))
 
+        menubar = self.menuBar()
+        
+        file_menu = menubar.addMenu("Файл")
+        help_menu = menubar.addMenu("Справка")
+        
+        new_action = QAction("Новый холст", self)
+        new_action.triggered.connect(self.focus_on_new_canvas)
+        file_menu.addAction(new_action)
+        
+        settings_action = QAction("Настройки", self)
+        settings_action.triggered.connect(self.show_settings)
+        file_menu.addAction(settings_action)
+        
+        help_action = QAction("Помощь", self)
+        help_action.triggered.connect(self.show_help)
+        help_menu.addAction(help_action)
+        
+        exit_action = QAction("Выход", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
+        
+        welcome_label = QLabel(f"Добро пожаловать, {username}")
+        welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        welcome_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        main_layout.addWidget(welcome_label)
+        
+        content_layout = QHBoxLayout()
+        
+        nav_frame = QFrame()
+        nav_frame.setFrameShape(QFrame.Shape.StyledPanel)
+        nav_layout = QVBoxLayout(nav_frame)
+        
+        self.btn_new_canvas = QPushButton("Новый холст")
+        self.btn_new_canvas.clicked.connect(self.focus_on_new_canvas)
+        
+        # Кнопка получения ID
+        self.btn_get_id = QPushButton("Получить ID")
+        self.btn_get_id.clicked.connect(self.get_user_id)
+        
+        nav_layout.addWidget(self.btn_new_canvas)
+        nav_layout.addWidget(self.btn_get_id)
+        
+        nav_layout.addStretch()
+        
+        self.btn_exit = QPushButton("Выход")
+        self.btn_exit.clicked.connect(self.close)
+        nav_layout.addWidget(self.btn_exit)
+        
+        content_frame = QFrame()
+        content_frame.setFrameShape(QFrame.Shape.StyledPanel)
+        content_inner_layout = QVBoxLayout(content_frame)
+        
+        size_group = QGroupBox("Создать новый холст")
+        size_layout = QVBoxLayout()
+        
+        self.size_combobox = QComboBox()
+        self.size_combobox.addItem("Маленький (2000x2000)", (2000, 2000))
+        self.size_combobox.addItem("Средний (4000x4000)", (4000, 4000))
+        self.size_combobox.addItem("Большой (6000x6000)", (6000, 6000))
+        self.size_combobox.addItem("Очень большой (8000x8000)", (8000, 8000))
+        self.size_combobox.setCurrentIndex(1)
+        
+        size_layout.addWidget(QLabel("Выберите размер холста:"))
+        size_layout.addWidget(self.size_combobox)
+        
+        self.bg_color_check = QCheckBox("Белый фон")
+        self.bg_color_check.setChecked(True)
+        size_layout.addWidget(self.bg_color_check)
+        
+        self.grid_check = QCheckBox("Показывать сетку")
+        size_layout.addWidget(self.grid_check)
+        
+        self.create_btn = QPushButton("Создать")
+        self.create_btn.clicked.connect(self.open_main_window)
+        size_layout.addWidget(self.create_btn)
+        
+        size_group.setLayout(size_layout)
+        content_inner_layout.addWidget(size_group)
+        
+        chat_group = QGroupBox("Чат")
+        chat_layout = QVBoxLayout()
+        
+        self.chat_display = QTextEdit()
+        self.chat_display.setReadOnly(True)
+        
+        self.chat_input = QLineEdit()
+        self.chat_input.setPlaceholderText("Сначала получите ID...")
+        self.chat_input.setEnabled(False)
+        self.chat_input.returnPressed.connect(self.send_chat_message)
+        
+        self.send_button = QPushButton("Отправить")
+        self.send_button.setEnabled(False)
+        self.send_button.clicked.connect(self.send_chat_message)
+        
+        chat_layout.addWidget(self.chat_display)
+        chat_layout.addWidget(self.chat_input)
+        chat_layout.addWidget(self.send_button)
+        
+        chat_group.setLayout(chat_layout)
+        content_inner_layout.addWidget(chat_group)
+        
+        content_layout.addWidget(nav_frame, stretch=1)
+        content_layout.addWidget(content_frame, stretch=3)
+        main_layout.addLayout(content_layout)
+        
+        self.chat_messages = []
+        
+    def get_user_id(self):
+        """Метод для получения ID пользователя в формате имяПК_время"""
+        try:
+            # Генерируем ID в формате имяПК_время
+            name = socket.gethostname()
+            time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            self.user_id = f"{name}_{time}"
+            
+            self.enable_chat()
+            self.chat_display.append(f"[SYSTEM] Ваш ID: {self.user_id}")
+            self.chat_display.append(f"[SYSTEM] Теперь вы можете писать в чат")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка при получении ID: {str(e)}")
+    
+    def enable_chat(self):
+        """Включает возможность писать в чат после получения ID"""
+        self.chat_input.setEnabled(True)
+        self.chat_input.setPlaceholderText("Введите сообщение...")
+        self.send_button.setEnabled(True)
+        self.btn_get_id.setEnabled(False)
+        
+    def send_chat_message(self):
+        if not self.user_id:
+            QMessageBox.warning(self, "Внимание", "Сначала получите ID!")
+            return
+            
+        message = self.chat_input.text().strip()
+        if message:
+            timestamp = QTime.currentTime().toString("hh:mm")
+            formatted_message = f"{timestamp} [{self.user_id}] {self.username}: {message}"
+            self.chat_messages.append(formatted_message)
+            self.chat_display.setPlainText("\n".join(self.chat_messages[-20:])) 
+            self.chat_input.clear()
+            self.chat_display.verticalScrollBar().setValue(self.chat_display.verticalScrollBar().maximum())
+
+    def focus_on_new_canvas(self):
+        self.size_combobox.setFocus()
+        
+    def show_help(self):
+        QMessageBox.information(self, "Справка", 
+            "Это главное меню приложения.\n\n"
+            "Для начала работы:\n"
+            "1. Получите ваш уникальный ID\n"
+            "2. Выберите размер холста\n"
+            "3. Нажмите 'Создать'\n\n"
+            "Без ID вы не сможете общаться в чате.")
+        
+    def show_settings(self):
+        settings_window = SettingsWindow()
+        settings_window.exec()
+        
     def open_main_window(self):
-        self.main_window = MainWindow(self.tray_icon_manager)
+        self.canvas_size = self.size_combobox.currentData()
+        
+        bg_color = Qt.GlobalColor.white if self.bg_color_check.isChecked() else Qt.GlobalColor.transparent
+        show_grid = self.grid_check.isChecked()
+        
+        self.main_window = MainWindow(self.tray_icon_manager, self.canvas_size)
+        self.main_window.canvas.set_bg_color(bg_color)
+        self.main_window.canvas.set_show_grid(show_grid)
         self.main_window.show()
-        self.hide()
+        self.close()
         
 class RegistrationWindow(QMainWindow):
     def __init__(self, tray_icon_manager):
@@ -281,7 +481,7 @@ class RegistrationWindow(QMainWindow):
         self.close()
 
 class MainWindow(QMainWindow):
-    def __init__(self, tray_icon_manager):
+    def __init__(self, tray_icon_manager, canvas_size=(4000, 4000)):
         super().__init__()
         self.tray_icon_manager = tray_icon_manager
         self.setWindowTitle("Main Window")
@@ -301,30 +501,26 @@ class MainWindow(QMainWindow):
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.scroll.setWidgetResizable(True)
 
-        self.canvas = Canvas(4000, 4000)
+        self.canvas = Canvas(canvas_size[0], canvas_size[1])
         self.canvas.set_drawing(False)
         self.scroll.setWidget(self.canvas)
         main_layout.addWidget(self.scroll)
 
-        # Слайдер масштаба
         self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
         self.zoom_slider.setRange(10, 200)
         self.zoom_slider.setValue(100)
         self.zoom_slider.valueChanged.connect(self.update_zoom)
 
-        # Слайдер толщины линии
         self.line_width_slider = QSlider(Qt.Orientation.Horizontal)
         self.line_width_slider.setRange(1, 64)
         self.line_width_slider.setValue(7)
         self.line_width_slider.valueChanged.connect(self.update_line_width)
 
-        # Слайдер размера ластика
         self.eraser_width_slider = QSlider(Qt.Orientation.Horizontal)
         self.eraser_width_slider.setRange(1, 64)
         self.eraser_width_slider.setValue(7)
         self.eraser_width_slider.valueChanged.connect(self.update_eraser_width)
 
-        # Слайдер размера текста
         self.text_size_slider = QSlider(Qt.Orientation.Horizontal)
         self.text_size_slider.setRange(6, 192)  
         self.text_size_slider.setValue(21)      
@@ -355,6 +551,32 @@ class MainWindow(QMainWindow):
         self.pan_base_speed = 1.5
         self.pan_max_speed = 3.0
         self.pan_smoothing = 0.2
+
+    def set_tool_mode(self, tool):
+        if tool == "pencil":
+            self.canvas.set_drawing(True)
+            self.canvas.set_eraser_mode(False)
+            self.canvas.set_text_mode(False)
+            self.canvas.set_shape_mode(False)
+            self.show_line_width_slider()
+        elif tool == "eraser":
+            self.canvas.set_drawing(True)
+            self.canvas.set_eraser_mode(True)
+            self.canvas.set_text_mode(False)
+            self.canvas.set_shape_mode(False)
+            self.show_eraser_slider()
+        elif tool == "text":
+            self.canvas.set_drawing(False)
+            self.canvas.set_eraser_mode(False)
+            self.canvas.set_text_mode(True)
+            self.canvas.set_shape_mode(False)
+            self.show_text_slider()
+        elif tool == "shape":
+            self.canvas.set_drawing(False)
+            self.canvas.set_eraser_mode(False)
+            self.canvas.set_text_mode(False)
+            self.canvas.set_shape_mode(True)
+            self.show_line_width_slider()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.RightButton:
@@ -486,4 +708,3 @@ if __name__ == "__main__":
     tray_icon_manager.set_login_window(window)  
     window.show()
     sys.exit(app.exec())
-    

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QLabel, QLineEdit
-from PyQt6.QtGui import QPixmap, QPainter, QColor, QTransform, QFont
-from PyQt6.QtCore import Qt, QPoint, QEvent
+from PyQt6.QtGui import QPixmap, QPainter, QColor, QTransform, QFont, QPen
+from PyQt6.QtCore import Qt, QPoint, QEvent, QRect
 
 class Canvas(QLabel):
     def __init__(self, width=2000, height=2000):
@@ -10,6 +10,9 @@ class Canvas(QLabel):
         self.leftButton = False
         self.eraser_mode = False
         self.text_mode = False
+        self.shape_mode = False 
+        self.shape_type = None   
+        self.shape_start = None  
         self.setScaledContents(False)
         
         self.drawing_pixmap = QPixmap(width, height)
@@ -51,6 +54,14 @@ class Canvas(QLabel):
             self.finish_text_input()
         self.text_mode = enabled
 
+    def set_shape_mode(self, enabled): 
+        if not enabled:
+            self.finish_text_input()
+        self.shape_mode = enabled
+
+    def set_shape_type(self, shape_type):  
+        self.shape_type = shape_type
+
     def set_pencil_color(self, color):
         self.pencil_color = color
         if hasattr(self, 'text_edit') and self.text_edit:
@@ -64,7 +75,7 @@ class Canvas(QLabel):
             self.text_edit.setFont(font)
 
     def set_text_size(self, size):
-        self.line_width = size // 3  # Сохраняем связь с толщиной линии
+        self.line_width = size // 3  
         if hasattr(self, 'text_edit') and self.text_edit:
             font = self.text_edit.font()
             font.setPixelSize(size)
@@ -73,6 +84,11 @@ class Canvas(QLabel):
     def mousePressEvent(self, event):
         if self.text_mode and event.button() == Qt.MouseButton.LeftButton:
             self.start_text_input(event.pos())
+            return
+            
+        if self.shape_mode and event.button() == Qt.MouseButton.LeftButton:  # Добавлено
+            self.shape_start = self.transform_position(event.pos())
+            self.leftButton = True
             return
             
         if event.button() == Qt.MouseButton.LeftButton and self.drawing:
@@ -104,13 +120,58 @@ class Canvas(QLabel):
 
             self.update_canvas()
             self.last_coords = current_pos
+        elif self.shape_mode and self.leftButton:  
+            current_pos = self.transform_position(event.pos())
+            temp_pixmap = self.drawing_pixmap.copy()
+            
+            painter = QPainter(temp_pixmap)
+            pen = painter.pen()
+            pen.setWidth(self.line_width)
+            pen.setColor(self.pencil_color)
+            painter.setPen(pen)
+            
+            if self.shape_type == "rectangle":
+                rect = QRect(self.shape_start, current_pos)
+                painter.drawRect(rect)
+            elif self.shape_type == "circle":
+                radius = int(((current_pos.x() - self.shape_start.x())**2 + 
+                           (current_pos.y() - self.shape_start.y())**2)**0.5)
+                painter.drawEllipse(self.shape_start, radius, radius)
+            elif self.shape_type == "line":
+                painter.drawLine(self.shape_start, current_pos)
+                
+            painter.end()
+            self.setPixmap(temp_pixmap)
         else:
             super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and self.shape_mode and self.leftButton:  # Добавлено
+            current_pos = self.transform_position(event.pos())
+            
+            painter = QPainter(self.drawing_pixmap)
+            pen = painter.pen()
+            pen.setWidth(self.line_width)
+            pen.setColor(self.pencil_color)
+            painter.setPen(pen)
+            
+            if self.shape_type == "rectangle":
+                rect = QRect(self.shape_start, current_pos)
+                painter.drawRect(rect)
+            elif self.shape_type == "circle":
+                radius = int(((current_pos.x() - self.shape_start.x())**2 + 
+                           (current_pos.y() - self.shape_start.y())**2)**0.5)
+                painter.drawEllipse(self.shape_start, radius, radius)
+            elif self.shape_type == "line":
+                painter.drawLine(self.shape_start, current_pos)
+                
+            painter.end()
+            self.update_canvas()
+            
         if event.button() == Qt.MouseButton.LeftButton:
             self.leftButton = False
             self.last_coords = None
+            self.shape_start = None  
         else:
             super().mouseReleaseEvent(event)
 
@@ -198,4 +259,11 @@ class Canvas(QLabel):
         if hasattr(self, 'text_edit') and self.text_edit:
             self.text_edit.hide()
         self.update_canvas()
-        
+
+    def set_bg_color(self, color):
+        self.bg_color = color
+        self.update()
+
+    def set_show_grid(self, show):
+        self.show_grid = show
+        self.update()
