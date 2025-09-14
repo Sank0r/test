@@ -244,7 +244,6 @@ class WelcomeWindow(QMainWindow):
         self.btn_new_canvas = QPushButton("Новый холст")
         self.btn_new_canvas.clicked.connect(self.focus_on_new_canvas)
         
-        # Кнопка получения ID
         self.btn_get_id = QPushButton("Получить ID")
         self.btn_get_id.clicked.connect(self.get_user_id)
         
@@ -317,9 +316,7 @@ class WelcomeWindow(QMainWindow):
         self.chat_messages = []
         
     def get_user_id(self):
-        """Метод для получения ID пользователя в формате имяПК_время"""
         try:
-            # Генерируем ID в формате имяПК_время
             name = socket.gethostname()
             time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             self.user_id = f"{name}_{time}"
@@ -332,7 +329,6 @@ class WelcomeWindow(QMainWindow):
             QMessageBox.critical(self, "Ошибка", f"Ошибка при получении ID: {str(e)}")
     
     def enable_chat(self):
-        """Включает возможность писать в чат после получения ID"""
         self.chat_input.setEnabled(True)
         self.chat_input.setPlaceholderText("Введите сообщение...")
         self.send_button.setEnabled(True)
