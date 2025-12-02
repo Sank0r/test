@@ -4,7 +4,11 @@ import socket
 from datetime import datetime
 import chat
 import importlib.util
+import lib.server as server
+import lib.client as client
+import json
 import subprocess
+import threading
 from PyQt6.QtCore import Qt, QSize, QPoint, QTime
 from PyQt6.QtWidgets import (
     QGroupBox, QApplication, QMainWindow, QVBoxLayout, QFormLayout, QLineEdit, QPushButton,
@@ -92,7 +96,18 @@ class SettingsWindow(QDialog):
 class LoginWindow(QMainWindow):
     def __init__(self, tray_icon_manager):
         super().__init__()
+    
         self.tray_icon_manager = tray_icon_manager
+        self.port = 3333
+        self.nickname = ""
+        self.peer = ""
+        self.peerIP = "0"
+        self.peerPort = "0"
+        self.historyLog = []
+        self.messageLog = []
+        self.historyPos = 0
+        self.chatServer = None
+        self.chatClient = None
 
         # Настройка статусбара и меню
         self.statusBar()
@@ -103,19 +118,10 @@ class LoginWindow(QMainWindow):
         self.setAct.setStatusTip('Set Up Application')
         self.setAct.triggered.connect(self.show_settings)
 
-        # Действие для сетевого взаимодействия 
-        self.setNet = QAction(QIcon('gear.png'), '&Connection', self)
-        self.setNet.setShortcut('Ctrl+R')
-        self.setNet.setStatusTip('Set Up Connection')
-        self.setNet.triggered.connect(self.show_network)
-        
         # Создание меню
         self.menubar = self.menuBar()
         self.fileMenu = self.menubar.addMenu('&Manager')
         self.fileMenu.addAction(self.setAct)
-
-        self.fileMenu = self.menubar.addMenu('&Network')
-        self.fileMenu.addAction(self.setNet)
         
         # Основные настройки окна
         self.setWindowTitle(LanguageConstants.get_constant("LOGIN", APPLICATION_LANGUAGE))
@@ -151,15 +157,45 @@ class LoginWindow(QMainWindow):
         layout.addWidget(self.login_button)
         layout.addWidget(self.register_button)
 
+        try:
+            jsonSettings = open('settings.json')
+            self.settings = json.loads(jsonSettings.read())
+            jsonSettings.close()
+            jsonFile = open('lang/{0}.json'.format(self.settings['language']))
+        except Exception:
+            jsonFile = open('lang/en.json')
+        self.lang = json.loads(jsonFile.read())
+        jsonFile.close()
+        
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            self.hostname = s.getsockname()[0]
+            s.close()
+        except socket.error as error:
+            self.tray_icon_manager.sysMsg(self.lang['noInternetAccess'], "Сетевая ошибка", False, False)
+            self.tray_icon_manager.sysMsg(self.lang['failedFetchPublicIP'], "Сетевая ошибка", False, False)
+            self.hostname = "0.0.0.0"
+
+    def sysMsg(self, msg, title="Системное сообщение", show_tray=True, show_os_notification=True):
+        self.tray_icon_manager.sysMsg(msg, title, show_tray, show_os_notification)
+
     def closeEvent(self, event):
+        if self.chatServer:
+            try:
+                self.chatServer.stop()
+            except:
+                pass
+        if self.chatClient:
+            try:
+                self.chatClient.stop()
+            except:
+                pass
         event.accept() 
 
     def show_settings(self):
         settings_window = SettingsWindow()
         settings_window.exec()
-
-    def show_network(self):
-        chatApp = chat.ChatApp().run()
 
     def handle_login(self):
         username = self.username_input.text()
@@ -174,18 +210,19 @@ class LoginWindow(QMainWindow):
             user_exist = bool(count_user)
 
             if user_exist:
+                self.tray_icon_manager.sysMsg(f"Успешный вход пользователя: {username}", "Авторизация", True, False)
                 self.open_welcome_window(username)
             else:
-                QMessageBox.warning(self, "Warning", "Invalid username or password")
+                self.tray_icon_manager.sysMsg("Неверное имя пользователя или пароль", "Ошибка авторизации", True, False)
 
         except db_main.DatabaseException as ex:
-            QMessageBox.critical(self, "Critical", ex.msg)
+            self.tray_icon_manager.sysMsg(f"Ошибка базы данных: {ex.msg}", "Критическая ошибка", True, False)
         finally:
             if 'conn' in locals():
                 db_main.disconnect_db(conn)
 
     def open_welcome_window(self, username):
-        self.welcome_window = WelcomeWindow(self.tray_icon_manager, username)
+        self.welcome_window = WelcomeWindow(self.tray_icon_manager, username, self)
         self.welcome_window.show()
         self.hide()
 
@@ -193,21 +230,39 @@ class LoginWindow(QMainWindow):
         self.registration_window = RegistrationWindow(self.tray_icon_manager)
         self.registration_window.show()
         self.hide()
-        
+
 class WelcomeWindow(QMainWindow):
-    def __init__(self, tray_icon_manager, username):
+    def __init__(self, tray_icon_manager, username, login_window):
         super().__init__()
         self.tray_icon_manager = tray_icon_manager
         self.username = username
         self.canvas_size = (4000, 4000)
         self.user_id = None
-        self.setWindowTitle("Меню")
+        self.login_window = login_window
+        
+        self.port = login_window.port
+        self.nickname = login_window.nickname
+        self.peer = login_window.peer
+        self.peerIP = login_window.peerIP
+        self.peerPort = login_window.peerPort
+        self.historyLog = login_window.historyLog
+        self.messageLog = login_window.messageLog
+        self.historyPos = login_window.historyPos
+        self.chatServer = login_window.chatServer
+        self.chatClient = login_window.chatClient
+        self.hostname = login_window.hostname
+        self.lang = login_window.lang
+        
+        self.user_role = None
+        
+        self.setWindowTitle("Главное меню")
         self.setFixedSize(1200, 800)
         self.setWindowIcon(QIcon("icon.png"))
 
         menubar = self.menuBar()
         
         file_menu = menubar.addMenu("Файл")
+        network_menu = menubar.addMenu("Сеть")
         help_menu = menubar.addMenu("Справка")
         
         new_action = QAction("Новый холст", self)
@@ -217,6 +272,10 @@ class WelcomeWindow(QMainWindow):
         settings_action = QAction("Настройки", self)
         settings_action.triggered.connect(self.show_settings)
         file_menu.addAction(settings_action)
+        
+        network_action = QAction("Запустить чат", self)
+        network_action.triggered.connect(self.show_network_chat)
+        network_menu.addAction(network_action)
         
         help_action = QAction("Помощь", self)
         help_action.triggered.connect(self.show_help)
@@ -230,7 +289,7 @@ class WelcomeWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
         
-        welcome_label = QLabel(f"Добро пожаловать, {username}")
+        welcome_label = QLabel(f"Добро пожаловать, {username}!")
         welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         welcome_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         main_layout.addWidget(welcome_label)
@@ -247,8 +306,32 @@ class WelcomeWindow(QMainWindow):
         self.btn_get_id = QPushButton("Получить ID")
         self.btn_get_id.clicked.connect(self.get_user_id)
         
+        self.btn_network = QPushButton("Сетевое подключение")
+        self.btn_network.clicked.connect(self.create_connection)
+        
+        self.btn_be_creator = QPushButton("Создать комнату")
+        self.btn_be_creator.clicked.connect(lambda: self.set_role("creator"))
+        
+        self.btn_be_user = QPushButton("Подключиться к комнате") 
+        self.btn_be_user.clicked.connect(lambda: self.set_role("user"))
+        
         nav_layout.addWidget(self.btn_new_canvas)
         nav_layout.addWidget(self.btn_get_id)
+        nav_layout.addWidget(self.btn_network)
+        nav_layout.addWidget(self.btn_be_creator)
+        nav_layout.addWidget(self.btn_be_user)
+        
+        self.creator_port_input = QLineEdit()
+        self.creator_port_input.setPlaceholderText("Порт комнаты (по умолчанию 3333)")
+        self.creator_port_input.setText("3333") 
+        self.creator_port_input.hide()
+        
+        self.connect_btn = QPushButton("Подключиться")
+        self.connect_btn.clicked.connect(self.connect_to_creator)
+        self.connect_btn.hide()
+        
+        nav_layout.addWidget(self.creator_port_input)
+        nav_layout.addWidget(self.connect_btn)
         
         nav_layout.addStretch()
         
@@ -314,7 +397,126 @@ class WelcomeWindow(QMainWindow):
         main_layout.addLayout(content_layout)
         
         self.chat_messages = []
+
+    def set_role(self, role):
+        self.user_role = role
         
+        if role == "creator":
+            self.creator_port_input.hide()
+            self.connect_btn.hide()
+            self.chat_display.append("Вы создали комнату на порту 3333")
+            self.create_connection()
+            self.enable_chat()
+            
+        elif role == "user":
+            self.creator_port_input.show() 
+            self.connect_btn.show()
+            self.chat_display.append("Введите порт создателя и нажмите 'Подключиться'")
+
+    def connect_to_creator(self):
+        """Подключение к создателю по порту"""
+        try:
+            port_text = self.creator_port_input.text().strip()
+            if not port_text:
+                port = 3333  
+            else:
+                port = int(port_text)
+            
+            if port < 1 or port > 65535:
+                self.chat_display.append("Ошибка: порт должен быть в диапазоне 1-65535")
+                return
+                
+            if self.chatClient:
+                self.chatClient.conn(['127.0.0.1', port])
+                self.chat_display.append(f"Подключаюсь к порту {port}...")
+                self.enable_chat()
+        except ValueError:
+            self.chat_display.append("Ошибка: введите корректный номер порта")
+        except Exception as e:
+            self.chat_display.append(f"Ошибка подключения: {str(e)}")
+
+    def send_chat_message(self):
+        if not self.user_id:
+            self.tray_icon_manager.sysMsg("Сначала получите ID для использования чата", "Внимание", True, False)
+            return
+            
+        message = self.chat_input.text().strip()
+        if message:
+            timestamp = QTime.currentTime().toString("hh:mm")
+            
+            role_prefix = " СОЗДАТЕЛЬ" if self.user_role == "creator" else "👤 ПОЛЬЗОВАТЕЛЬ"
+            formatted_message = f"{timestamp} {role_prefix}: {message}"
+            
+            self.chat_messages.append(formatted_message)
+            self.chat_display.setPlainText("\n".join(self.chat_messages[-20:])) 
+            self.chat_input.clear()
+            self.chat_display.verticalScrollBar().setValue(self.chat_display.verticalScrollBar().maximum())
+            
+            if self.chatClient and self.chatClient.isConnected:
+                self.chatClient.send(message)
+            
+            self.tray_icon_manager.sysMsg(f"Сообщение отправлено: {message[:50]}...", "Чат", False, False)
+
+    def sysMsg(self, msg, title="Системное сообщение", show_tray=True, show_os_notification=True):
+        self.tray_icon_manager.sysMsg(msg, title, show_tray, show_os_notification)
+
+    def is_port_available(self, port):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(0.1)
+                result = s.connect_ex(('127.0.0.1', port))
+                return result != 0  
+        except:
+            return False
+
+    def get_available_port(self):
+        for port in range(3333, 3344):
+            if self.is_port_available(port):
+                return port
+        return None
+        
+    def create_connection(self):
+        try:
+            if self.chatServer:
+                try:
+                    self.chatServer.stop()
+                    self.chatServer = None
+                except:
+                    pass
+                    
+            if self.chatClient:
+                try:
+                    self.chatClient.stop()
+                    self.chatClient = None
+                except:
+                    pass
+            
+            creator_port = 3333
+            
+            if not self.is_port_available(creator_port):
+                self.tray_icon_manager.sysMsg(f"Порт {creator_port} занят, невозможно создать комнату", "Ошибка сети", True, False)
+                return
+                
+            self.port = creator_port
+            self.login_window.port = creator_port
+            
+            self.chatServer = server.Server(self)
+            self.chatServer.daemon = True
+            self.chatServer.start()
+            
+            import time
+            time.sleep(0.1)
+            
+            self.chatClient = client.Client(self)
+            self.chatClient.start()
+            
+            self.chatClient.conn(['127.0.0.1', creator_port])
+            
+            self.tray_icon_manager.sysMsg(f"Комната создана на порту {creator_port}", "Сетевое подключение", True, False)
+            
+        except Exception as e:
+            self.tray_icon_manager.sysMsg(f"Ошибка при создании подключения: {str(e)}", "Ошибка сети", True, False)
+    
     def get_user_id(self):
         try:
             name = socket.gethostname()
@@ -324,9 +526,12 @@ class WelcomeWindow(QMainWindow):
             self.enable_chat()
             self.chat_display.append(f"[SYSTEM] Ваш ID: {self.user_id}")
             self.chat_display.append(f"[SYSTEM] Теперь вы можете писать в чат")
+
+            self.tray_icon_manager.sysMsg(f"Ваш ID: {self.user_id}", "Идентификатор пользователя", True, False)
             
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Ошибка при получении ID: {str(e)}")
+            error_msg = f"Ошибка при получении ID: {str(e)}"
+            self.tray_icon_manager.sysMsg(error_msg, "Ошибка", True, False)
     
     def enable_chat(self):
         self.chat_input.setEnabled(True)
@@ -334,31 +539,35 @@ class WelcomeWindow(QMainWindow):
         self.send_button.setEnabled(True)
         self.btn_get_id.setEnabled(False)
         
-    def send_chat_message(self):
-        if not self.user_id:
-            QMessageBox.warning(self, "Внимание", "Сначала получите ID!")
-            return
+    def show_network_chat(self):
+        try:
+            thread = threading.Thread(target=self.run_chat_app)
+            thread.daemon = True
+            thread.start()
             
-        message = self.chat_input.text().strip()
-        if message:
-            timestamp = QTime.currentTime().toString("hh:mm")
-            formatted_message = f"{timestamp} [{self.user_id}] {self.username}: {message}"
-            self.chat_messages.append(formatted_message)
-            self.chat_display.setPlainText("\n".join(self.chat_messages[-20:])) 
-            self.chat_input.clear()
-            self.chat_display.verticalScrollBar().setValue(self.chat_display.verticalScrollBar().maximum())
+            self.tray_icon_manager.sysMsg("Чат-приложение запущено", "Сетевое подключение", True, False)
+            
+        except Exception as e:
+            error_msg = f"Ошибка запуска чата: {str(e)}"
+            self.tray_icon_manager.sysMsg(error_msg, "Ошибка", True, False)
+
+    def run_chat_app(self):
+        chat_app = chat.ChatApp()
+        chat_app.run()
 
     def focus_on_new_canvas(self):
         self.size_combobox.setFocus()
         
     def show_help(self):
-        QMessageBox.information(self, "Справка", 
+        help_text = (
             "Это главное меню приложения.\n\n"
             "Для начала работы:\n"
             "1. Получите ваш уникальный ID\n"
             "2. Выберите размер холста\n"
             "3. Нажмите 'Создать'\n\n"
-            "Без ID вы не сможете общаться в чате.")
+            "Без ID вы не сможете общаться в чате.\n"
+            "Для сетевого общения используйте кнопку 'Сетевое подключение'.")
+        QMessageBox.information(self, "Справка", help_text)
         
     def show_settings(self):
         settings_window = SettingsWindow()
@@ -374,8 +583,31 @@ class WelcomeWindow(QMainWindow):
         self.main_window.canvas.set_bg_color(bg_color)
         self.main_window.canvas.set_show_grid(show_grid)
         self.main_window.show()
+        
+        self.tray_icon_manager.sysMsg(f"Создан новый холст размером {self.canvas_size[0]}x{self.canvas_size[1]}", "Холст", True, False)
+        
         self.close()
         
+    def closeEvent(self, event):
+        self.login_window.chatServer = self.chatServer
+        self.login_window.chatClient = self.chatClient
+
+        if self.chatServer:
+            try:
+                self.chatServer.stop()
+                self.chatServer = None
+            except:
+                pass
+        if self.chatClient:
+            try:
+                self.chatClient.stop()
+                self.chatClient = None
+            except:
+                pass
+            
+        self.tray_icon_manager.sysMsg("Главное меню закрыто", "Система", False, False)
+        event.accept()
+            
 class RegistrationWindow(QMainWindow):
     def __init__(self, tray_icon_manager):
         super().__init__()
@@ -428,22 +660,22 @@ class RegistrationWindow(QMainWindow):
         date_of_birth = self.date_input.date().toString("yyyy-MM-dd")
 
         if not username:
-            QMessageBox.warning(self,LanguageConstants.get_constant("WARNING", APPLICATION_LANGUAGE),LanguageConstants.get_constant("USERNAME_EMPTY", APPLICATION_LANGUAGE))
+            self.tray_icon_manager.sysMsg(LanguageConstants.get_constant("USERNAME_EMPTY", APPLICATION_LANGUAGE), "Предупреждение", True, False)
             self.username_input.setFocus()
             return
 
         if not password:
-            QMessageBox.warning(self,LanguageConstants.get_constant("WARNING", APPLICATION_LANGUAGE),LanguageConstants.get_constant("PASSWORD_EMPTY", APPLICATION_LANGUAGE))
+            self.tray_icon_manager.sysMsg(LanguageConstants.get_constant("PASSWORD_EMPTY", APPLICATION_LANGUAGE), "Предупреждение", True, False)
             self.password_input.setFocus()
             return
 
         if len(password) < 6:
-            QMessageBox.warning(self,LanguageConstants.get_constant("WARNING", APPLICATION_LANGUAGE),LanguageConstants.get_constant("PASSWORD_TOO_SHORT", APPLICATION_LANGUAGE))
+            self.tray_icon_manager.sysMsg(LanguageConstants.get_constant("PASSWORD_TOO_SHORT", APPLICATION_LANGUAGE), "Предупреждение", True, False)
             self.password_input.setFocus()
             return
 
         if len(username) < 6:
-            QMessageBox.warning(self,LanguageConstants.get_constant("WARNING", APPLICATION_LANGUAGE),LanguageConstants.get_constant("USERNAME_TOO_SHORT", APPLICATION_LANGUAGE))
+            self.tray_icon_manager.sysMsg(LanguageConstants.get_constant("USERNAME_TOO_SHORT", APPLICATION_LANGUAGE), "Предупреждение", True, False)
             self.password_input.setFocus()
             return
 
@@ -455,18 +687,18 @@ class RegistrationWindow(QMainWindow):
             user_exists = db_main.request_select_db(conn,"SELECT count(*) FROM users WHERE login=?",(username,))[0][0]
 
             if user_exists:
-                QMessageBox.warning(self,LanguageConstants.get_constant("USER_ERROR", APPLICATION_LANGUAGE),LanguageConstants.get_constant("USER_ALREADY_EXISTS", APPLICATION_LANGUAGE))
+                self.tray_icon_manager.sysMsg(LanguageConstants.get_constant("USER_ALREADY_EXISTS", APPLICATION_LANGUAGE), "Ошибка пользователя", True, False)
                 self.username_input.setFocus()
                 return
 
             db_main.request_update_db(conn,"INSERT INTO users (login, password, description, birth_date, type) VALUES (?, ?, ?, ?, ?)",(username, password_hash, description, date_of_birth, 1))
 
-            QMessageBox.information(self,LanguageConstants.get_constant("REGISTRATION_COMPLETED_QMENU", APPLICATION_LANGUAGE),LanguageConstants.get_constant("REGISTRATION_COMPLETED", APPLICATION_LANGUAGE))
+            self.tray_icon_manager.sysMsg(LanguageConstants.get_constant("REGISTRATION_COMPLETED", APPLICATION_LANGUAGE), "Регистрация завершена", True, False)
             
             self.back_to_login()
 
         except db_main.DatabaseException as ex:
-            QMessageBox.critical(self,LanguageConstants.get_constant("ERROR", APPLICATION_LANGUAGE),f"{LanguageConstants.get_constant('DATABASE_ERROR', APPLICATION_LANGUAGE)}: {ex.msg}")
+            self.tray_icon_manager.sysMsg(f"{LanguageConstants.get_constant('DATABASE_ERROR', APPLICATION_LANGUAGE)}: {ex.msg}", "Ошибка", True, False)
         finally:
             if conn:
                 db_main.disconnect_db(conn)

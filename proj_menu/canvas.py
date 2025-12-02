@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QLabel, QLineEdit
 from PyQt6.QtGui import QPixmap, QPainter, QColor, QTransform, QFont, QPen
 from PyQt6.QtCore import Qt, QPoint, QEvent, QRect
+import datetime
 
 class Canvas(QLabel):
     def __init__(self, width=2000, height=2000):
@@ -227,7 +228,12 @@ class Canvas(QLabel):
         return new_pos
 
     def update_canvas(self):
+        first_time = datetime.datetime.now()
         temp_pixmap = self.drawing_pixmap.copy()
+        later_time = datetime.datetime.now()
+        difference = later_time - first_time
+        result = difference.total_seconds()*1000
+        print("copy: ",result)
         
         if self.current_text_item and self.current_text_item.get('text'):
             painter = QPainter(temp_pixmap)
@@ -237,15 +243,28 @@ class Canvas(QLabel):
             painter.setPen(self.current_text_item['color'])
             painter.drawText(self.current_text_item['pos'], self.current_text_item['text'])
             painter.end()
-        
+        first_time = datetime.datetime.now()
         self.setPixmap(temp_pixmap)
+        later_time = datetime.datetime.now()
+        difference = later_time - first_time
+        result = difference.total_seconds()*1000
+        print("setpixmap: ",result)
         
     def scale_pixmap(self):
+        first_time = datetime.datetime.now()
+        
         scaled_pixmap = self.original_pixmap.scaled(
             self.original_pixmap.size() * self.scale_factor,
             Qt.AspectRatioMode.IgnoreAspectRatio,
             Qt.TransformationMode.SmoothTransformation)
+        
+        later_time = datetime.datetime.now()
+        difference = later_time - first_time
+        result = difference.total_seconds()*1000
+        
+        print("scale: ",result)
         self.setPixmap(scaled_pixmap)
+        
         self.drawing_pixmap = scaled_pixmap
 
     def set_scale(self, scale_factor):
