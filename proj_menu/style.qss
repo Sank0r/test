@@ -3,10 +3,93 @@
     src: url('./Roboto-Black.ttf'); 
 }
 
+/* ==================== БАЗОВЫЕ СТИЛИ ==================== */
 QWidget {
     background-color: #f4f4f4;
     font-family: 'Roboto', sans-serif; 
 }
+
+/* ==================== ОБЩИЕ КНОПКИ (ВСЕ КРОМЕ ПАНЕЛИ ИНСТРУМЕНТОВ) ==================== */
+QPushButton {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 12px; 
+    padding: 15px 35px; 
+    font-size: 18px; 
+    font-family: 'Roboto', sans-serif; 
+}
+
+QPushButton:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px); 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+}
+
+QPushButton:pressed {
+    background-color: #004080;
+    transform: translateY(0);
+}
+
+/* ==================== ПАНЕЛЬ ИНСТРУМЕНТОВ (ОСОБЫЕ СТИЛИ) ==================== */
+
+/* Окно панели инструментов */
+QWidget#ToolbarWindow {
+    background-color: #ffffff;
+    border: none;
+    border-bottom: 2px solid #C0C0C0;
+    border-radius: 0;
+    margin: 0;
+    padding: 10px 15px;
+}
+
+/* Кнопки-иконки в панели инструментов - ПРОЗРАЧНЫЕ */
+QWidget#ToolbarWindow QPushButton[class="toolIconButton"] {
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    color: transparent !important;
+}
+
+/* Кнопки-иконки при наведении */
+QWidget#ToolbarWindow QPushButton[class="toolIconButton"]:hover {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+    border: 2px solid rgba(0, 123, 255, 0.3) !important;
+}
+
+/* Активная кнопка-иконка */
+QWidget#ToolbarWindow QPushButton[class="toolIconButton"][active="true"] {
+    background-color: rgba(0, 123, 255, 0.15) !important;
+    border: 2px solid #007BFF !important;
+}
+
+/* Подписи под кнопками - ОТДЕЛЬНЫЙ СТИЛЬ */
+QWidget#ToolbarWindow QPushButton#toolLabel {
+    background-color: transparent !important;
+    color: #666 !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    border: none !important;
+    padding: 2px 0 0 0 !important;
+    margin: 0 !important;
+    text-align: center !important;
+    min-height: 16px !important;
+    font-family: 'Roboto', sans-serif !important;
+}
+
+/* Разделители в панели инструментов */
+QWidget#ToolbarWindow QFrame[frameShape="4"] {
+    border: none;
+    border-left: 1px solid #e0e0e0;
+    margin: 10px 15px;
+    min-height: 40px;
+}
+
+/* ==================== ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ (СТАРЫЙ СТИЛЬ) ==================== */
 
 QLabel {
     font-weight: bold;
@@ -22,23 +105,6 @@ QLineEdit, QDateEdit, QComboBox {
     margin-bottom: 15px; 
     font-family: 'Roboto', sans-serif; 
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); 
-}
-
-QPushButton {
-    background-color: #007BFF;
-    color: white;
-    border: none;
-    border-radius: 12px; 
-    padding: 15px 35px; 
-    font-size: 18px; 
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    font-family: 'Roboto', sans-serif; 
-}
-
-QPushButton:hover {
-    background-color: #0056b3;
-    transform: translateY(-2px); 
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
 }
 
 QMessageBox {
@@ -246,32 +312,6 @@ QHeaderView {
     border: none;
 }
 
-QTableWidget QPushButton#iconButton {
-    background-color: transparent;
-    border: none;
-    padding: 0;
-    margin: 0;
-    border-radius: 5px;
-    min-width: 40px;
-    min-height: 40px;
-}
-
-QTableWidget QPushButton#iconButton[active="true"] {
-    background-color: rgba(0, 0, 0, 0.1);
-}
-
-QTableWidget QPushButton#iconButton:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-
-QTableWidget QPushButton#iconButton:pressed {
-    background-color: rgba(0, 0, 0, 0.15);
-}
-
-QTableWidget QPushButton#iconButton:focus {
-    outline: none;
-}
-
 SettingsWindow {
     background-color: #f4f4f4;
 }
@@ -312,7 +352,7 @@ SettingsWindow QLabel {
     padding: 5px 0;
 }
 
-/* Кнопки */
+/* Кнопки в SettingsWindow */
 SettingsWindow QPushButton {
     background-color: #007BFF;
     color: white;
@@ -325,6 +365,10 @@ SettingsWindow QPushButton {
 
 SettingsWindow QPushButton:hover {
     background-color: #0056b3;
+}
+
+SettingsWindow QPushButton:pressed {
+    background-color: #004080;
 }
 
 QMessageBox {
@@ -449,4 +493,69 @@ WelcomeWindow QHBoxLayout QLabel {
     font-size: 15px;
     color: #333;
     font-weight: normal;
+}
+
+/* ==================== COLOR DIALOG ==================== */
+
+QColorDialog {
+    background-color: white !important;
+    border: 2px solid #C0C0C0 !important;
+    border-radius: 12px !important;
+}
+
+QColorDialog QWidget {
+    background-color: white !important;
+}
+
+QColorDialog QLabel {
+    color: #333 !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    padding: 8px !important;
+}
+
+QColorDialog QPushButton {
+    background-color: #007BFF !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 10px 20px !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    margin: 8px !important;
+    min-width: 80px !important;
+}
+
+QColorDialog QPushButton:hover {
+    background-color: #0056b3 !important;
+}
+
+/* ==================== МЕНЮ ФИГУР ==================== */
+
+QMenu#shapeMenu {
+    background-color: #ffffff;
+    border: 2px solid #C0C0C0;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    font-size: 12px;
+}
+
+QMenu#shapeMenu::item {
+    padding: 10px 20px;
+    border-radius: 6px;
+    margin: 2px 0;
+    font-size: 13px;
+    color: #333;
+    background-color: transparent;
+}
+
+QMenu#shapeMenu::item:hover {
+    background-color: #007BFF;
+    color: white;
+}
+
+QMenu#shapeMenu::item:selected {
+    background-color: #0056b3;
+    color: white;
 }
