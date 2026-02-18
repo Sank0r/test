@@ -694,7 +694,6 @@ class WelcomeWindow(QMainWindow):
 class RegistrationWindow(QMainWindow):
     def __init__(self, tray_icon_manager):
         super().__init__()
-        print(f"DEBUG: Инициализация RegistrationWindow")
         
         self.tray_icon_manager = tray_icon_manager
         self.setWindowTitle(LanguageConstants.get_constant("REGISTER", APPLICATION_LANGUAGE))
@@ -921,7 +920,6 @@ class MainWindow(QMainWindow):
                 event.accept()  
                 return  
         except Exception as e:
-            print(f"ERROR в mouseMoveEvent: {e}")
             traceback.print_exc()
             self.panning = False  
             if hasattr(self, 'last_speed_multiplier'):
@@ -930,7 +928,6 @@ class MainWindow(QMainWindow):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        print(f"DEBUG: mouseReleaseEvent в MainWindow, button: {event.button()}")
         try:
             if event.button() == Qt.MouseButton.RightButton and self.panning:
                 self.panning = False
@@ -1117,7 +1114,6 @@ if __name__ == "__main__":
         stylesheet = load_stylesheet("style.qss")
         if stylesheet:
             app.setStyleSheet(stylesheet)
-            print("DEBUG: Стили загружены успешно")
         else:
             print("WARNING: Стили не загружены")
         
@@ -1127,12 +1123,10 @@ if __name__ == "__main__":
         window.show()
         
         exit_code = app.exec()
-        print(f"DEBUG: Приложение завершено с кодом: {exit_code}")
         
         sys.exit(exit_code)
         
     except Exception as e:
-        print(f"ERROR: Критическая ошибка при запуске: {e}")
         traceback.print_exc()
         
         try:
@@ -1140,6 +1134,4 @@ if __name__ == "__main__":
             QMessageBox.critical(None, "Critical Error", error_msg)
         except:
             pass
-        
-        input("Press Enter to exit...")
         sys.exit(1)

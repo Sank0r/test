@@ -1,0 +1,4 @@
+__pycache__/
+*.bat
+*.log
+settings.json

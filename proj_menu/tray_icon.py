@@ -46,11 +46,9 @@ class TrayIconManager(QObject):
                 menu.addAction(exit_action)
                 
                 self.tray_icon.setContextMenu(menu)
-                
-                # Подключаем клик по иконке
+
                 self.tray_icon.activated.connect(self.on_tray_icon_activated)
-                
-                # Показываем иконку
+
                 self.tray_icon.show()
                 
                 print("DEBUG: Трей-иконка создана успешно")
@@ -80,22 +78,26 @@ class TrayIconManager(QObject):
                 self.login_window.activateWindow()
                 
             except Exception as e:
+                print(f"ERROR: Ошибка при показе окна: {e}")
+                try:
+                    self.login_window.show()
+                except:
+                    pass
 
     def exit_application(self):
-        
         if self.tray_icon:
             try:
                 self.tray_icon.hide()
                 self.tray_icon = None
             except:
                 pass
-        
+
         if self.login_window:
             try:
                 self.login_window.close()
             except:
                 pass
-        
+ 
         app = QApplication.instance()
         if app:
             app.quit()
