@@ -15,25 +15,21 @@ class GridWindow(QWidget):
         self.line_width = 7
         self.shape_type = None
 
-        # Устанавливаем уникальный objectName для более точного CSS
         self.setObjectName("ToolbarWindow")
         
         self.setup_ui()
         self.setFixedHeight(100)
 
     def setup_ui(self):
-        """Настройка интерфейса панели инструментов"""
         self.main_layout = QHBoxLayout()
         self.main_layout.setSpacing(0)
         self.main_layout.setContentsMargins(15, 8, 15, 8)
-        
-        # Группировка инструментов
+
         self.create_tool_groups()
         
         self.setLayout(self.main_layout)
 
     def create_tool_groups(self):
-        """Создание групп инструментов с разделителями"""
         # Группа рисования
         drawing_icons = ["icon1.png", "icon2.png", "icon3.png"]
         drawing_names = ["Карандаш", "Цвет", "Ластик"]
@@ -47,19 +43,16 @@ class GridWindow(QWidget):
         self.create_tool_group(object_icons, object_names, 3)
         
         self.add_separator()
-        
-        # Группа файлов
-        file_icons = ["8.png", "9.png"]
-        file_names = ["Сохранить", "Загрузить"]
+
+        file_icons = ["8.png", "9.png", "10.png"]  
+        file_names = ["Сохранить", "Загрузить", "Назад"]  
         self.create_tool_group(file_icons, file_names, 6)
 
     def create_tool_group(self, icons, names, start_index):
-        """Создает группу инструментов"""
         for i, (icon_name, tool_name) in enumerate(zip(icons, names)):
             self.create_tool_button(icon_name, tool_name, start_index + i)
 
     def create_tool_button(self, icon_name, tool_name, index):
-        """Создает одну кнопку инструмента"""
         button_container = QWidget()
         button_container.setFixedWidth(70)
         
@@ -67,30 +60,26 @@ class GridWindow(QWidget):
         container_layout.setSpacing(4)
         container_layout.setContentsMargins(5, 5, 5, 5)
         container_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # Кнопка с иконкой - УНИКАЛЬНЫЙ objectName для CSS
+
         icon_button = QPushButton()
-        icon_button.setObjectName(f"toolButton_{index}")  # Уникальное имя для каждой кнопки
-        icon_button.setProperty("class", "toolIconButton")  # CSS класс
+        icon_button.setObjectName(f"toolButton_{index}")
+        icon_button.setProperty("class", "toolIconButton") 
         icon_button.setToolTip(tool_name)
         icon_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        
-        # Устанавливаем иконку
+
         icon_path = get_resource_path(icon_name)
         if os.path.exists(icon_path):
             icon_button.setIcon(QIcon(icon_path))
             icon_button.setIconSize(QSize(28, 28))
         else:
-            # Запасной вариант с текстом
             icon_button.setText(tool_name[0])
             icon_button.setStyleSheet("font-weight: bold; font-size: 14px; color: #007BFF;")
         
         icon_button.setFixedSize(50, 50)
         icon_button.clicked.connect(lambda checked, idx=index: self.on_icon_clicked(idx))
-        
-        # Подпись под кнопкой - ОТДЕЛЬНЫЙ класс
+
         label = QPushButton(tool_name)
-        label.setObjectName("toolLabel")  # Отдельный objectName
+        label.setObjectName("toolLabel")  
         label.setFlat(True)
         label.setEnabled(False)
         label.setFixedHeight(16)
@@ -99,14 +88,12 @@ class GridWindow(QWidget):
         container_layout.addWidget(label, 0, Qt.AlignmentFlag.AlignHCenter)
         
         self.main_layout.addWidget(button_container)
-        
-        # Храним ссылки на кнопки
+
         if not hasattr(self, 'tool_buttons'):
             self.tool_buttons = []
         self.tool_buttons.append(icon_button)
 
     def add_separator(self):
-        """Добавляет вертикальный разделитель между группами"""
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.VLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
@@ -114,15 +101,12 @@ class GridWindow(QWidget):
         self.main_layout.addWidget(separator)
 
     def on_icon_clicked(self, icon_index):
-        """Обработка клика по инструменту"""
         button = self.tool_buttons[icon_index]
-        
-        # Сбрасываем все кнопки
+
         for i, btn in enumerate(self.tool_buttons):
             btn.setProperty("active", i == icon_index)
             btn.style().polish(btn)
-        
-        # Обработка инструментов
+
         if icon_index == 0:  # Карандаш
             self.activate_tool("pencil", icon_index)
             self.main_window.canvas.set_drawing(True)
@@ -167,13 +151,14 @@ class GridWindow(QWidget):
             
         elif icon_index == 7:  # Загрузка
             self.load_canvas()
+            
+        elif icon_index == 8:  # Кнопка "Назад"
+            self.go_back_to_menu()
 
     def activate_tool(self, tool_name, icon_index):
-        """Активирует инструмент"""
         self.current_tool = tool_name
 
     def show_shape_menu(self):
-        """Показывает меню выбора фигур"""
         menu = QMenu(self)
         menu.setObjectName("shapeMenu")
         
@@ -186,15 +171,13 @@ class GridWindow(QWidget):
         for name, shape_type in shapes:
             action = menu.addAction(name)
             action.triggered.connect(lambda checked, st=shape_type: self.set_shape_type(st))
-        
-        # Показываем меню рядом с кнопкой "Фигуры"
+
         if len(self.tool_buttons) > 4:
             menu.exec(self.tool_buttons[4].mapToGlobal(
                 self.tool_buttons[4].rect().bottomLeft()
             ))
 
     def set_shape_type(self, shape_type):
-        """Устанавливает тип фигуры"""
         self.shape_type = shape_type
         self.activate_tool("shape", 4)
         self.main_window.canvas.set_shape_type(shape_type)
@@ -205,7 +188,6 @@ class GridWindow(QWidget):
         self.main_window.show_line_width_slider()
 
     def choose_pencil_color(self):
-        """Открывает диалог выбора цвета"""
         color_dialog = QColorDialog(self.pencil_color, self)
         color_dialog.setOption(QColorDialog.ColorDialogOption.DontUseNativeDialog, on=True)
         color_dialog.setWindowTitle("Выбор цвета")
@@ -217,7 +199,6 @@ class GridWindow(QWidget):
                 self.main_window.canvas.set_pencil_color(color)
 
     def save_canvas(self):
-        """Сохранение холста"""
         if not self.main_window or not self.main_window.canvas:
             return
             
@@ -240,7 +221,6 @@ class GridWindow(QWidget):
                 QMessageBox.warning(self, "Ошибка", "Не удалось сохранить изображение")
 
     def load_canvas(self):
-        """Загрузка изображения на холст"""
         if not self.main_window or not self.main_window.canvas:
             return
         
@@ -267,12 +247,10 @@ class GridWindow(QWidget):
                 old_width, old_height,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation)
-            
-            # Создаем новое изображение холста
+
             self.main_window.canvas.drawing_pixmap = QPixmap(old_width, old_height)
             self.main_window.canvas.drawing_pixmap.fill(Qt.GlobalColor.white)
-            
-            # Рисуем загруженное изображение на холсте - ИСПРАВЛЕННАЯ СТРОКА
+
             painter = QPainter(self.main_window.canvas.drawing_pixmap)
             painter.drawPixmap(0, 0, scaled_pixmap)
             painter.end()
@@ -285,3 +263,16 @@ class GridWindow(QWidget):
                 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Произошла ошибка при загрузке:\n{str(e)}")
+
+    def go_back_to_menu(self):
+        if self.main_window:
+            username = getattr(self.main_window, 'username', 'Пользователь')
+            tray_manager = getattr(self.main_window, 'tray_icon_manager', None)
+            login_window = getattr(self.main_window, 'login_window', None)
+
+            self.main_window.close()
+
+            if tray_manager and login_window:
+                from menu_reg import WelcomeWindow
+                welcome_window = WelcomeWindow(tray_manager, username, login_window)
+                welcome_window.show()

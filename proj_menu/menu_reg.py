@@ -656,8 +656,13 @@ class WelcomeWindow(QMainWindow):
             
             bg_color = Qt.GlobalColor.white if self.bg_color_check.isChecked() else Qt.GlobalColor.transparent
             show_grid = self.grid_check.isChecked()
-            
-            self.main_window = MainWindow(self.tray_icon_manager, self.canvas_size)
+
+            self.main_window = MainWindow(
+                self.tray_icon_manager, 
+                self.canvas_size,
+                username=self.username, 
+                login_window=self.login_window  
+            )
             self.main_window.canvas.set_bg_color(bg_color)
             self.main_window.canvas.set_show_grid(show_grid)
             self.main_window.show()
@@ -814,10 +819,12 @@ class RegistrationWindow(QMainWindow):
             self.close()
 
 class MainWindow(QMainWindow):
-    def __init__(self, tray_icon_manager, canvas_size=(4000, 4000)):
+    def __init__(self, tray_icon_manager, canvas_size=(4000, 4000), username="Пользователь", login_window=None):
         super().__init__()    
         try:
             self.tray_icon_manager = tray_icon_manager
+            self.username = username  
+            self.login_window = login_window  
             self.setWindowTitle("Графический редактор")
             self.setFixedSize(PALETTE_SCREEN_SIZE[0], PALETTE_SCREEN_SIZE[1])
             
